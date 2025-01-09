@@ -32,9 +32,8 @@
 
 ## 4. Workspaces & Channels
 - [ ] Implement workspace creation and management
-- [ ] Implement channel creation (public, private) within workspaces
+- [ ] Implement channel creation within workspaces
 - [ ] Set up channel membership records
-- [ ] Implement shared channels across workspaces
 
 ## 5. Real-Time Messaging
 - [ ] Implement real-time chat using Supabase Realtime

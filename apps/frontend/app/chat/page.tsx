@@ -1,10 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
 import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
+import { useSupabase } from '@/components/providers/supabase-provider'
+import type { Database } from '@/lib/database.types'
+
+type Channel = Database['public']['Tables']['channels']['Row']
 
 interface ChatMessage {
   id: string
@@ -16,102 +21,105 @@ interface ChatMessage {
   reactions?: Array<{ emoji: string; count: number }>
 }
 
-const channelMessages: Record<string, ChatMessage[]> = {
-  '1': [
-    {
-      id: '1',
-      avatar: "/placeholder.svg",
-      username: "John Smith",
-      timestamp: "9:53 AM",
-      content: "Hello everyone! Welcome to the #general channel 👋",
-      isPinned: true,
-      reactions: [
-        { emoji: "👋", count: 2 },
-        { emoji: "❤️", count: 4 }
-      ]
-    },
-    {
-      id: '2',
-      avatar: "/placeholder.svg",
-      username: "Jane Doe",
-      timestamp: "9:56 AM",
-      content: "Thanks for the warm welcome! Excited to be here.",
-      reactions: [
-        { emoji: "🎉", count: 1 }
-      ]
-    }
-  ],
-  '2': [
-    {
-      id: '3',
-      avatar: "/placeholder.svg",
-      username: "Alice Brown",
-      timestamp: "10:15 AM",
-      content: "Hey all! Anyone have any fun weekend plans to share? #random",
-      reactions: [
-        { emoji: "🏖️", count: 3 },
-        { emoji: "🍻", count: 2 }
-      ]
-    }
-  ]
+interface ChannelResponse {
+  channel: Channel | null
 }
-
-const dmMessages: Record<string, ChatMessage[]> = {
-  '1': [
-    {
-      id: '5',
-      avatar: "/placeholder.svg",
-      username: "John Smith",
-      timestamp: "2:30 PM",
-      content: "Hey, how's the project coming along?",
-    }
-  ],
-  '2': [
-    {
-      id: '6',
-      avatar: "/placeholder.svg",
-      username: "Jane Doe",
-      timestamp: "3:45 PM",
-      content: "Just wanted to check in about the meeting tomorrow.",
-    }
-  ]
-}
-
-const channels = [
-  { id: '1', name: 'general' },
-  { id: '2', name: 'random' },
-]
-
-const directMessages = [
-  { id: '1', name: 'John Smith' },
-  { id: '2', name: 'Jane Doe' },
-  { id: '3', name: 'Bob Wilson' },
-  { id: '4', name: 'Alice Brown' },
-  { id: '5', name: 'Sam Taylor' },
-]
 
 export default function ChatPage() {
-  const [activeChat, setActiveChat] = useState({ type: 'channel', id: '1' })
-  const [messages, setMessages] = useState(channelMessages['1'])
+  const { supabase, user } = useSupabase()
+  const searchParams = useSearchParams()
+  const workspaceId = searchParams.get('workspace')
+  
+  const [channels, setChannels] = useState<Channel[]>([])
+  const [activeChat, setActiveChat] = useState<{ type: 'channel' | 'dm', id: string | null }>({ type: 'channel', id: null })
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+
+  useEffect(() => {
+    if (workspaceId && user) {
+      fetchChannels()
+    }
+  }, [workspaceId, user])
+
+  const fetchChannels = async () => {
+    if (!workspaceId) return
+
+    try {
+      const { data: memberChannels, error } = await supabase
+        .from('members')
+        .select(`
+          channel:channels (
+            id,
+            name,
+            created_at,
+            workspace_id,
+            is_private
+          )
+        `)
+        .eq('workspace_id', workspaceId)
+        .eq('user_id', user?.id)
+
+      if (error) throw error
+
+      const channelList = (memberChannels as unknown as ChannelResponse[])
+        .map(mc => mc.channel)
+        .filter((c): c is Channel => c !== null)
+
+      setChannels(channelList)
+
+      // Set first channel as active if none selected
+      if (!activeChat.id && channelList.length > 0) {
+        setActiveChat({ type: 'channel', id: channelList[0].id })
+      }
+    } catch (error) {
+      console.error('Error fetching channels:', error)
+    }
+  }
 
   const handleSelectChannel = (channelId: string) => {
     setActiveChat({ type: 'channel', id: channelId })
-    setMessages(channelMessages[channelId] || [])
+    // TODO: Fetch messages for the selected channel
   }
 
   const handleSelectDM = (dmId: string) => {
     setActiveChat({ type: 'dm', id: dmId })
-    setMessages(dmMessages[dmId] || [])
+    // TODO: Fetch messages for the selected DM
+  }
+
+  const handleSendMessage = async (content: string) => {
+    if (!activeChat.id || !user) return
+
+    const newMessage: ChatMessage = {
+      id: String(Date.now()),
+      avatar: "/placeholder.svg",
+      username: user.email || 'Anonymous',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      content,
+    }
+
+    // TODO: Save message to Supabase
+    setMessages([...messages, newMessage])
+  }
+
+  if (!workspaceId) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Please select a workspace to continue.</p>
+      </div>
+    )
   }
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar onSelectChannel={handleSelectChannel} onSelectDM={handleSelectDM} />
+      <Sidebar 
+        channels={channels}
+        onSelectChannel={handleSelectChannel} 
+        onSelectDM={handleSelectDM} 
+      />
       <main className="flex-1 flex flex-col overflow-hidden">
         <Header 
           chatName={activeChat.type === 'channel' 
             ? `#${channels.find(c => c.id === activeChat.id)?.name || 'unknown'}` 
-            : directMessages.find(dm => dm.id === activeChat.id)?.name || 'unknown'
+            : 'Direct Message'
           } 
         />
         <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -119,16 +127,7 @@ export default function ChatPage() {
             <Message key={message.id} {...message} />
           ))}
         </div>
-        <MessageInput onSendMessage={(content) => {
-          const newMessage: ChatMessage = {
-            id: String(Date.now()),
-            avatar: "/placeholder.svg",
-            username: "John Doe",
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            content,
-          }
-          setMessages([...messages, newMessage])
-        }} />
+        <MessageInput onSendMessage={handleSendMessage} />
       </main>
     </div>
   )

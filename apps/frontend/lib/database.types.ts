@@ -32,12 +32,56 @@ export interface Database {
           last_login?: string | null
         }
       }
+      workspaces: {
+        Row: {
+          id: string
+          name: string
+          created_at: string
+          owner_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          created_at?: string
+          owner_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          created_at?: string
+          owner_id?: string
+        }
+      }
+      channels: {
+        Row: {
+          id: string
+          name: string
+          workspace_id: string
+          created_at: string
+          is_private: boolean
+        }
+        Insert: {
+          id?: string
+          name: string
+          workspace_id: string
+          created_at?: string
+          is_private?: boolean
+        }
+        Update: {
+          id?: string
+          name?: string
+          workspace_id?: string
+          created_at?: string
+          is_private?: boolean
+        }
+      }
       members: {
         Row: {
           id: string
           user_id: string
           workspace_id: string
           channel_id: string | null
+          role: 'admin' | 'member' | 'guest'
           created_at: string
         }
         Insert: {
@@ -45,6 +89,7 @@ export interface Database {
           user_id: string
           workspace_id: string
           channel_id?: string | null
+          role: 'admin' | 'member' | 'guest'
           created_at?: string
         }
         Update: {
@@ -52,6 +97,7 @@ export interface Database {
           user_id?: string
           workspace_id?: string
           channel_id?: string | null
+          role?: 'admin' | 'member' | 'guest'
           created_at?: string
         }
       }

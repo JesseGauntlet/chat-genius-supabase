@@ -1,11 +1,11 @@
 'use client'
 
-import { Button } from "@/components/ui/button"
-import { useSupabase } from "@/components/providers/supabase-provider"
-import { useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import Link from "next/link"
+import { useState } from 'react'
+import { useSupabase } from '@/components/providers/supabase-provider'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import Link from 'next/link'
 
 export default function RegisterPage() {
   const { supabase } = useSupabase()
@@ -19,7 +19,8 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // 1. Create user account
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -29,7 +30,69 @@ export default function RegisterPage() {
         },
       })
 
-      if (error) throw error
+      if (authError) throw authError
+
+      if (authData.user) {
+        // 2. Create default workspace
+        const { data: workspace, error: workspaceError } = await supabase
+          .from('workspaces')
+          .insert([
+            {
+              name: 'My Workspace',
+              owner_id: authData.user.id,
+            },
+          ])
+          .select()
+          .single()
+
+        if (workspaceError) throw workspaceError
+
+        // 3. Add user as admin to workspace
+        const { error: memberError } = await supabase
+          .from('members')
+          .insert([
+            {
+              user_id: authData.user.id,
+              workspace_id: workspace.id,
+              role: 'admin',
+            },
+          ])
+
+        if (memberError) throw memberError
+
+        // 4. Create default channels
+        const defaultChannels = ['general', 'random']
+        for (const channelName of defaultChannels) {
+          // Create channel
+          const { data: channel, error: channelError } = await supabase
+            .from('channels')
+            .insert([
+              {
+                name: channelName,
+                workspace_id: workspace.id,
+                is_private: false,
+              },
+            ])
+            .select()
+            .single()
+
+          if (channelError) throw channelError
+
+          // Add user as member of channel
+          const { error: channelMemberError } = await supabase
+            .from('members')
+            .insert([
+              {
+                user_id: authData.user.id,
+                workspace_id: workspace.id,
+                channel_id: channel.id,
+                role: 'admin',
+              },
+            ])
+
+          if (channelMemberError) throw channelMemberError
+        }
+      }
     } catch (error) {
       console.error('Error registering:', error)
     } finally {
@@ -84,7 +147,7 @@ export default function RegisterPage() {
 
       <div className="text-center text-sm">
         Already have an account?{' '}
-        <Link href="/login" className="text-primary hover:underline">
+        <Link href="/auth/login" className="text-primary hover:underline">
           Sign in
         </Link>
       </div>

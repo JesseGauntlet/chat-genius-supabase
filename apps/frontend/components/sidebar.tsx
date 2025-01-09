@@ -1,16 +1,15 @@
 'use client'
 
 import { Button } from "./ui/button"
+import type { Database } from '@/lib/database.types'
+
+type Channel = Database['public']['Tables']['channels']['Row']
 
 interface SidebarProps {
+  channels: Channel[]
   onSelectChannel: (channelId: string) => void
   onSelectDM: (dmId: string) => void
 }
-
-const channels = [
-  { id: '1', name: 'general' },
-  { id: '2', name: 'random' },
-]
 
 const directMessages = [
   { id: '1', name: 'John Smith' },
@@ -20,7 +19,7 @@ const directMessages = [
   { id: '5', name: 'Sam Taylor' },
 ]
 
-export function Sidebar({ onSelectChannel, onSelectDM }: SidebarProps) {
+export function Sidebar({ channels, onSelectChannel, onSelectDM }: SidebarProps) {
   return (
     <div className="w-64 bg-gray-100 flex flex-col h-full">
       <div className="p-4 border-b">
