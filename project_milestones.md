@@ -31,7 +31,7 @@
 - [x] Implement role-based access control for channels and workspace administration
 
 ## 4. Workspaces & Channels
-- [ ] Implement workspace creation and management
+- [x] Implement workspace creation and management
 - [ ] Implement channel creation within workspaces
 - [ ] Set up channel membership records
 

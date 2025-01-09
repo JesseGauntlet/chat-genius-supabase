@@ -1,9 +1,13 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from "./ui/button"
+import { useSupabase } from '@/components/providers/supabase-provider'
 import type { Database } from '@/lib/database.types'
 
 type Channel = Database['public']['Tables']['channels']['Row']
+type Workspace = Database['public']['Tables']['workspaces']['Row']
 
 interface SidebarProps {
   channels: Channel[]
@@ -20,10 +24,38 @@ const directMessages = [
 ]
 
 export function Sidebar({ channels, onSelectChannel, onSelectDM }: SidebarProps) {
+  const { supabase } = useSupabase()
+  const searchParams = useSearchParams()
+  const workspaceId = searchParams.get('workspace')
+  const [workspace, setWorkspace] = useState<Workspace | null>(null)
+
+  useEffect(() => {
+    if (workspaceId) {
+      fetchWorkspace()
+    }
+  }, [workspaceId])
+
+  const fetchWorkspace = async () => {
+    if (!workspaceId) return
+
+    try {
+      const { data: workspace, error } = await supabase
+        .from('workspaces')
+        .select('*')
+        .eq('id', workspaceId)
+        .single()
+
+      if (error) throw error
+      setWorkspace(workspace)
+    } catch (error) {
+      console.error('Error fetching workspace:', error)
+    }
+  }
+
   return (
     <div className="w-64 bg-gray-100 flex flex-col h-full">
       <div className="p-4 border-b">
-        <h2 className="font-semibold">Workspace Name</h2>
+        <h2 className="font-semibold">{workspace?.name || 'Loading...'}</h2>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-4">
