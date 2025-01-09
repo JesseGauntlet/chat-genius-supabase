@@ -1,0 +1,15 @@
+# Project References
+project_overview.md
+
+# Project Milestones & Checklist
+project_milestones.md
+
+Ensure each step is checked off before moving to the next.
+
+Add unit tests, error handling, logging, and documentation for critical components as you code.
+
+When given a coding task, think out loud step by step and describe what you plan to do before writing any code.
+
+When writing code, write it in a way that is easy to understand and maintain, focusing on readability and simple, concise code and file structure.
+
+When writing code, create proper documentation for the code you write.
