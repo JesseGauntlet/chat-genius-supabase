@@ -95,7 +95,7 @@ export default function ChatPage() {
           created_at,
           user:user_id (
             id,
-            email
+            name
           )
         `)
         .eq('channel_id', channelId)
@@ -106,7 +106,7 @@ export default function ChatPage() {
       setMessages(messages.map(message => ({
         id: message.id,
         avatar: "/placeholder.svg",
-        username: message.user.email,
+        username: message.user?.name || 'Unknown User',
         timestamp: new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         content: message.message.text,
       })))
@@ -149,7 +149,7 @@ export default function ChatPage() {
           if (payload.new.channel_id === activeChat.id) {
             const { data: user, error } = await supabase
               .from('users')
-              .select('email')
+              .select('name')
               .eq('id', payload.new.user_id)
               .single()
 
@@ -161,7 +161,7 @@ export default function ChatPage() {
             setMessages(prevMessages => [...prevMessages, {
               id: payload.new.id,
               avatar: "/placeholder.svg",
-              username: user.email,
+              username: user.name || 'Unknown User',
               timestamp: new Date(payload.new.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               content: payload.new.message.text,
             }])

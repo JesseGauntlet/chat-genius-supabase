@@ -28,29 +28,21 @@ export default function WorkspacesPage() {
   }, [user])
 
   const fetchWorkspaces = async () => {
-    if (!user) return
-
     try {
-      // Get workspaces where user is a member
-      const { data, error } = await supabase
-        .from('members')
+      // Get all workspaces
+      const { data: workspaces, error } = await supabase
+        .from('workspaces')
         .select(`
-          workspace:workspaces (
-            id,
-            name,
-            created_at,
-            owner_id
-          )
+          id,
+          name,
+          created_at,
+          owner_id
         `)
-        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
 
       if (error) throw error
 
-      const workspaceList = (data as unknown as WorkspaceResponse[])
-        .map(item => item.workspace)
-        .filter(Boolean)
-
-      setWorkspaces(workspaceList)
+      setWorkspaces(workspaces)
     } catch (error) {
       console.error('Error fetching workspaces:', error)
     }
@@ -98,6 +90,27 @@ export default function WorkspacesPage() {
     }
   }
 
+  const handleJoinWorkspace = async (workspaceId: string) => {
+    if (!user) return
+
+    try {
+      const { error } = await supabase
+        .from('members')
+        .insert({
+          user_id: user.id,
+          workspace_id: workspaceId,
+          role: 'member',
+        })
+
+      if (error) throw error
+
+      // Refresh the workspaces list after joining
+      fetchWorkspaces()
+    } catch (error) {
+      console.error('Error joining workspace:', error)
+    }
+  }
+
   if (!user) {
     return null
   }
@@ -134,10 +147,15 @@ export default function WorkspacesPage() {
               <p className="text-sm text-muted-foreground">
                 Created {new Date(workspace.created_at).toLocaleDateString()}
               </p>
-              <div className="mt-2">
+              <div className="mt-2 space-x-2">
                 <Button variant="outline" onClick={() => window.location.href = `/chat?workspace=${workspace.id}`}>
                   Open Workspace
                 </Button>
+                {user && workspace.owner_id !== user.id && (
+                  <Button variant="outline" onClick={() => handleJoinWorkspace(workspace.id)}>
+                    Join Workspace
+                  </Button>
+                )}
               </div>
             </div>
           ))}
