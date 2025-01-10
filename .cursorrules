@@ -8,3 +8,56 @@ Ensure each step is checked off before moving to the next.
 
 Current paths to remember:
 import { useSupabase } from "@/components/providers/supabase-provider"
+
+Current database schema:
+### **1. `users`**
+- **id (PK)**  
+- **name**  
+- **email**  
+- **created_at**  
+- **last_login**
+
+### **2. `members`**
+- **id (PK)**  
+- **user_id (FK)** → `users.id`  
+- **channel_id (FK)** → `channels.id`  
+- **created_at**
+
+### **3. `channels`**
+- **id (PK)**  
+- **name**  
+- **description**  
+- **created_at**  
+- **is_private** (boolean)
+
+### **4. `workspaces`**
+- **id (PK)**  
+- **name**  
+- **channel_id (FK)** → (the default channel for this workspace)  
+- **created_at**
+
+### **5. `shared_channels`**
+- **channel_id (FK)** → `channels.id`  
+- **workspace_id (FK)** → `workspaces.id`  
+- **target_workspace_id (FK)** → `workspaces.id`  
+- **origin_workspace_id (FK)** → `workspaces.id`  
+- **name**  
+- **topic**  
+- **is_private**
+
+### **6. `chat`**
+- **id (PK)**  
+- **user_id (FK)** → `users.id`  
+- **channel_id (FK)** → `channels.id`  
+- **message (JSONB)**  (e.g., `{ text: "...", attachments: ["..."] }`)  
+- **total_replies**  
+- **is_deleted** (boolean)  
+- **modified_at**  
+- **created_at**  
+- **parent_id** (for threaded messages referencing another `chat.id`)
+
+### **7. `emojis`**
+- **id (PK)**  
+- **user_id (FK)** → `users.id`  
+- **chat_id (FK)** → `chat.id`  
+- **emoji_uni_code** (string representing the emoji)

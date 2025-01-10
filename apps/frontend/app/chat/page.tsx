@@ -85,20 +85,95 @@ export default function ChatPage() {
     // TODO: Fetch messages for the selected DM
   }
 
+  const fetchMessages = async (channelId: string) => {
+    try {
+      const { data: messages, error } = await supabase
+        .from('chat')
+        .select(`
+          id,
+          message,
+          created_at,
+          user:user_id (
+            id,
+            email
+          )
+        `)
+        .eq('channel_id', channelId)
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+
+      setMessages(messages.map(message => ({
+        id: message.id,
+        avatar: "/placeholder.svg",
+        username: message.user.email,
+        timestamp: new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        content: message.message.text,
+      })))
+    } catch (error) {
+      console.error('Error fetching messages:', error)
+    }
+  }
+
+  useEffect(() => {
+    if (activeChat.id && activeChat.type === 'channel') {
+      fetchMessages(activeChat.id)
+    }
+  }, [activeChat])
+
   const handleSendMessage = async (content: string) => {
     if (!activeChat.id || !user) return
 
-    const newMessage: ChatMessage = {
-      id: String(Date.now()),
-      avatar: "/placeholder.svg",
-      username: user.email || 'Anonymous',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      content,
-    }
+    try {
+      const { error } = await supabase
+        .from('chat')
+        .insert({
+          message: { text: content },
+          user_id: user.id,
+          channel_id: activeChat.id,
+        })
 
-    // TODO: Save message to Supabase
-    setMessages([...messages, newMessage])
+      if (error) throw error
+    } catch (error) {
+      console.error('Error sending message:', error)
+    }
   }
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('chat')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat' },
+        async (payload) => {
+          if (payload.new.channel_id === activeChat.id) {
+            const { data: user, error } = await supabase
+              .from('users')
+              .select('email')
+              .eq('id', payload.new.user_id)
+              .single()
+
+            if (error) {
+              console.error('Error fetching user:', error)
+              return
+            }
+
+            setMessages(prevMessages => [...prevMessages, {
+              id: payload.new.id,
+              avatar: "/placeholder.svg",
+              username: user.email,
+              timestamp: new Date(payload.new.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              content: payload.new.message.text,
+            }])
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [activeChat.id])
 
   if (!workspaceId) {
     return (
