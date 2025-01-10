@@ -56,21 +56,19 @@ export function FileUpload({ channelId, onUploadComplete }: FileUploadProps) {
   }
 
   return (
-    <div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="relative"
-        disabled={isUploading}
-      >
-        <input
-          type="file"
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          onChange={handleFileUpload}
-          accept="image/*,.pdf,.doc,.docx,.txt" // Add file type restrictions if needed
-        />
-        <FileIcon className="h-5 w-5" />
-      </Button>
-    </div>
+    <Button
+      variant="ghost"
+      size="icon"
+      className="relative h-10 w-10 flex-shrink-0"
+      disabled={isUploading}
+    >
+      <input
+        type="file"
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        onChange={handleFileUpload}
+        accept="image/*,.pdf,.doc,.docx,.txt"
+      />
+      <FileIcon className="h-5 w-5" />
+    </Button>
   )
 } 

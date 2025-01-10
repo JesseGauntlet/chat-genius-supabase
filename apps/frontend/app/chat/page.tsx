@@ -376,12 +376,14 @@ export default function ChatPage() {
             />
           ))}
         </div>
-        <div className="flex items-center space-x-2 p-4 border-t">
+        <div className="flex items-center gap-2 p-4 border-t">
           <FileUpload 
             channelId={activeChannel?.id || ''}
             onUploadComplete={handleFileUpload} 
           />
-          <MessageInput onSendMessage={handleSendMessage} />
+          <div className="flex-1">
+            <MessageInput onSendMessage={handleSendMessage} />
+          </div>
         </div>
       </main>
     </div>

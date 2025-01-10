@@ -219,8 +219,8 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
   }, [workspaceId])
 
   return (
-    <div className="w-64 bg-purple-50 flex flex-col h-full">
-      <div className="p-4 border-b flex items-center justify-between bg-purple-100">
+    <div className="w-64 bg-purple-100 flex flex-col h-full">
+      <div className="p-4 border-b flex items-center justify-between bg-purple-200">
         <h2 className="font-semibold">{workspace?.name || 'Loading...'}</h2>
         <Avatar className="h-8 w-8">
           <AvatarImage src={user?.user_metadata?.avatar_url || ''} alt={user?.user_metadata?.name || ''} />
@@ -267,8 +267,8 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
                   variant="ghost"
                   className={`w-full justify-start ${
                     selectedChannelId === channel.id
-                      ? 'bg-purple-100 hover:bg-purple-100'
-                      : 'hover:bg-purple-100'
+                      ? 'bg-purple-200 hover:bg-purple-200'
+                      : 'hover:bg-purple-200'
                   }`}
                   onClick={() => handleChannelClick(channel)}
                 >
@@ -287,8 +287,8 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
                     variant="ghost"
                     className={`w-full justify-start ${
                       selectedChannelId === channel.id
-                        ? 'bg-purple-100 hover:bg-purple-100'
-                        : 'hover:bg-purple-100'
+                        ? 'bg-purple-200 hover:bg-purple-200'
+                        : 'hover:bg-purple-200'
                     }`}
                     onClick={() => handleChannelClick(channel)}
                   >

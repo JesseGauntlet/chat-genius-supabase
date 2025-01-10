@@ -11,7 +11,7 @@ interface HeaderProps {
 
 export function Header({ chatName, workspaceId, onSelectMember, memberCount }: HeaderProps) {
   return (
-    <header className="h-14 border-b bg-purple-100 flex items-center justify-between px-4">
+    <header className="h-14 border-b bg-purple-200 flex items-center justify-between px-4">
       <h2 className="text-lg font-semibold">{chatName}</h2>
       <WorkspaceMembersDialog
         workspaceId={workspaceId}
