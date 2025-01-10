@@ -37,7 +37,7 @@
 ## 5. Real-Time Messaging
 - [ ] Implement real-time chat using Supabase Realtime
   - [x] Channel-based conversations
-  - [ ] Direct messages (DMs)
+  - [x] Direct messages (DMs)
   - [ ] Threaded replies
 - [ ] Implement typing indicators and presence updates
 

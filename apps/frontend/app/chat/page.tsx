@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
@@ -18,7 +18,7 @@ interface ChatMessage {
   timestamp: string
   content: string
   isPinned?: boolean
-  reactions?: Array<{ emoji: string; count: number }>
+  reactions: Array<{ emoji: string; count: number }>
 }
 
 interface ChannelResponse {
@@ -114,6 +114,29 @@ export default function ChatPage() {
     // TODO: Fetch messages for the selected DM
   }
 
+  const fetchMessageReactions = async (messageId: string) => {
+    const { data: reactions, error } = await supabase
+      .from('emojis')
+      .select('emoji_uni_code')
+      .eq('chat_id', messageId)
+
+    if (error) {
+      console.error('Error fetching reactions:', error)
+      return []
+    }
+
+    // Count occurrences of each emoji
+    const emojiCounts = reactions.reduce((acc: Record<string, number>, { emoji_uni_code }) => {
+      acc[emoji_uni_code] = (acc[emoji_uni_code] || 0) + 1
+      return acc
+    }, {})
+
+    return Object.entries(emojiCounts).map(([emoji, count]) => ({
+      emoji,
+      count
+    }))
+  }
+
   const fetchMessages = async (channelId: string) => {
     try {
       const { data: messages, error } = await supabase
@@ -132,17 +155,70 @@ export default function ChatPage() {
 
       if (error) throw error
 
-      setMessages(messages.map(message => ({
-        id: message.id,
-        avatar: "/placeholder.svg",
-        username: message.user?.name || 'Unknown User',
-        timestamp: new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        content: message.message.text,
-      })))
+      // Fetch reactions for each message
+      const messagesWithReactions = await Promise.all(
+        messages.map(async (message) => {
+          const reactions = await fetchMessageReactions(message.id)
+          return {
+            id: message.id,
+            avatar: "/placeholder.svg",
+            username: message.user?.name || 'Unknown User',
+            timestamp: new Date(message.created_at).toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }),
+            content: message.message.text,
+            reactions
+          }
+        })
+      )
+
+      setMessages(messagesWithReactions)
     } catch (error) {
       console.error('Error fetching messages:', error)
     }
   }
+
+  const handleAddReaction = useCallback(async (messageId: string, emoji: string) => {
+    if (!user) return
+
+    try {
+      const { error } = await supabase
+        .from('emojis')
+        .insert({
+          chat_id: messageId,
+          user_id: user.id,
+          emoji_uni_code: emoji
+        })
+
+      if (error) throw error
+
+      // Update the messages state with the new reaction
+      setMessages(prevMessages => 
+        prevMessages.map(message => {
+          if (message.id === messageId) {
+            const existingReaction = message.reactions.find(r => r.emoji === emoji)
+            if (existingReaction) {
+              return {
+                ...message,
+                reactions: message.reactions.map(r => 
+                  r.emoji === emoji ? { ...r, count: r.count + 1 } : r
+                )
+              }
+            } else {
+              return {
+                ...message,
+                reactions: [...message.reactions, { emoji, count: 1 }]
+              }
+            }
+          }
+          return message
+        })
+      )
+    } catch (error) {
+      console.error('Error adding reaction:', error)
+    }
+  }, [user, supabase])
 
   useEffect(() => {
     if (activeChat.id && activeChat.type === 'channel') {
@@ -204,6 +280,34 @@ export default function ChatPage() {
     }
   }, [activeChat.id])
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('chat-reactions')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'emojis' },
+        async (payload) => {
+          const messageId = payload.new.chat_id
+          if (messages.some(m => m.id === messageId)) {
+            // Refresh reactions for this message
+            const reactions = await fetchMessageReactions(messageId)
+            setMessages(prevMessages =>
+              prevMessages.map(message =>
+                message.id === messageId
+                  ? { ...message, reactions }
+                  : message
+              )
+            )
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [messages])
+
   if (!workspaceId) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -220,23 +324,25 @@ export default function ChatPage() {
       />
       <main className="flex-1 flex flex-col overflow-hidden">
         <Header 
-          chatName={
-            activeChat.type === 'channel'
-              ? activeChannel
-                ? `#${activeChannel.name}`
-                : 'Unnamed Channel'
-              : 'Direct Message'
-          } 
+          chatName={activeChat.type === 'channel' 
+            ? activeChannel?.name 
+            : 'Direct Message'
+          }
           workspaceId={workspaceId}
           onSelectMember={handleSelectMember}
           memberCount={memberCount}
         />
         <div className="flex-1 overflow-y-auto px-4 py-4">
           {messages.map((message) => (
-            <Message key={message.id} {...message} />
+            <Message 
+              key={message.id} 
+              {...message} 
+              onAddReaction={handleAddReaction}
+            />
           ))}
         </div>
         <MessageInput onSendMessage={handleSendMessage} />
       </main>
     </div>
   )
+}
