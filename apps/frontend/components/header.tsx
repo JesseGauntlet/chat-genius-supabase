@@ -1,9 +1,17 @@
 'use client'
 
-export function Header({ chatName }: { chatName: string }) {
+import { WorkspaceMembersDialog } from './workspace-members-dialog'
+
+interface HeaderProps {
+  chatName: string
+  workspaceId: string
+}
+
+export function Header({ chatName, workspaceId }: HeaderProps) {
   return (
-    <header className="border-b p-4">
-      <h2 className="font-semibold">{chatName}</h2>
+    <header className="bg-white border-b py-2 px-4 flex items-center justify-between">
+      <h2 className="text-lg font-semibold">{chatName}</h2>
+      <WorkspaceMembersDialog workspaceId={workspaceId} />
     </header>
   )
 } 

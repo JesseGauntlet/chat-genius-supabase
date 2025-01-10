@@ -33,6 +33,7 @@ export default function ChatPage() {
   const [channels, setChannels] = useState<Channel[]>([])
   const [activeChat, setActiveChat] = useState<{ type: 'channel' | 'dm', id: string | null }>({ type: 'channel', id: null })
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [activeChannel, setActiveChannel] = useState<Channel | null>(null)
 
   useEffect(() => {
     if (workspaceId && user) {
@@ -75,9 +76,9 @@ export default function ChatPage() {
     }
   }
 
-  const handleSelectChannel = (channelId: string) => {
-    setActiveChat({ type: 'channel', id: channelId })
-    // TODO: Fetch messages for the selected channel
+  const handleSelectChannel = (channel: Channel) => {
+    setActiveChat({ type: 'channel', id: channel.id })
+    setActiveChannel(channel)
   }
 
   const handleSelectDM = (dmId: string) => {
@@ -182,7 +183,6 @@ export default function ChatPage() {
       </div>
     )
   }
-
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar 
@@ -192,10 +192,11 @@ export default function ChatPage() {
       />
       <main className="flex-1 flex flex-col overflow-hidden">
         <Header 
-          chatName={activeChat.type === 'channel' 
-            ? `#${channels.find(c => c.id === activeChat.id)?.name || 'unknown'}` 
-            : 'Direct Message'
+          chatName={activeChannel 
+            ? `#${activeChannel.name}` 
+            : 'Unnamed Channel'
           } 
+          workspaceId={workspaceId}
         />
         <div className="flex-1 overflow-y-auto px-4 py-4">
           {messages.map((message) => (
@@ -206,4 +207,3 @@ export default function ChatPage() {
       </main>
     </div>
   )
-} 

@@ -36,11 +36,10 @@
 
 ## 5. Real-Time Messaging
 - [ ] Implement real-time chat using Supabase Realtime
-  - [ ] Channel-based conversations
+  - [x] Channel-based conversations
   - [ ] Direct messages (DMs)
   - [ ] Threaded replies
 - [ ] Implement typing indicators and presence updates
-- [ ] Handle message updates and deletions
 
 ## 6. Search
 - [ ] Implement basic search using Postgres Full-Text Search in Supabase

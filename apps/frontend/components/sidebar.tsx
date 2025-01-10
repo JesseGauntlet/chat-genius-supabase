@@ -21,16 +21,13 @@ type ChannelInsert = Database['public']['Tables']['channels']['Insert']
 type MemberInsert = Database['public']['Tables']['members']['Insert']
 
 interface SidebarProps {
-  onSelectChannel: (channelId: string) => void
+  onSelectChannel: (channel: Channel) => void
   onSelectDM: (dmId: string) => void
 }
 
 const directMessages = [
   { id: '1', name: 'John Smith' },
   { id: '2', name: 'Jane Doe' },
-  { id: '3', name: 'Bob Wilson' },
-  { id: '4', name: 'Alice Brown' },
-  { id: '5', name: 'Sam Taylor' },
 ]
 
 export function Sidebar({ onSelectChannel, onSelectDM }: SidebarProps) {
@@ -115,7 +112,7 @@ export function Sidebar({ onSelectChannel, onSelectDM }: SidebarProps) {
 
       setNewChannelName('')
       setDialogOpen(false)
-      onSelectChannel(channel.id)
+      onSelectChannel(channel)
     } catch (error) {
       console.error('Error creating channel:', error)
     } finally {
@@ -123,9 +120,9 @@ export function Sidebar({ onSelectChannel, onSelectDM }: SidebarProps) {
     }
   }
 
-  const handleChannelClick = (channelId: string) => {
-    setSelectedChannelId(channelId)
-    onSelectChannel(channelId)
+  const handleChannelClick = (channel: Channel) => {
+    setSelectedChannelId(channel.id)
+    onSelectChannel(channel)
   }
 
   return (
@@ -174,7 +171,7 @@ export function Sidebar({ onSelectChannel, onSelectDM }: SidebarProps) {
                       ? 'bg-gray-200 hover:bg-gray-200'
                       : 'hover:bg-gray-200'
                   }`}
-                  onClick={() => handleChannelClick(channel.id)}
+                  onClick={() => handleChannelClick(channel)}
                 >
                   # {channel.name}
                 </Button>
