@@ -95,21 +95,37 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
 
   const fetchDirectMessages = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: channels, error: channelsError } = await supabase
         .from('channels')
-        .select(`
-          id,
-          members:members!channel_id(user:users(id, name))
-        `)
+        .select('id, members!inner(user_id)')
         .eq('is_private', true)
         .eq('members.user_id', user?.id)
 
-      if (error) throw error
+      if (channelsError) throw channelsError
 
-      const directMessages = data.map((channel) => ({
-        id: channel.id,
-        name: channel.id
-      }))
+      const channelIds = channels.map((channel) => channel.id)
+
+      const { data: members, error: membersError } = await supabase
+        .from('members')
+        .select(`
+          channel_id,
+          user:users(id, name)
+        `)
+        .in('channel_id', channelIds)
+        .neq('user_id', user?.id)
+
+      if (membersError) throw membersError
+
+      const directMessages = channels.map((channel) => {
+        const channelMembers = members
+          .filter((member) => member.channel_id === channel.id)
+          .map((member) => member.user.name)
+
+        return {
+          id: channel.id,
+          name: channelMembers.join(', ')
+        }
+      })
 
       setDirectMessages(directMessages)
     } catch (error) {
