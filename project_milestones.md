@@ -39,11 +39,9 @@
   - [x] Channel-based conversations
   - [x] Direct messages (DMs)
   - [ ] Threaded replies
-- [ ] Implement typing indicators and presence updates
 
 ## 6. Search
 - [ ] Implement basic search using Postgres Full-Text Search in Supabase
-- [ ] (Optional) Integrate with an external search engine for advanced searching
 
 ## 7. File Sharing
 - [x] Set up Supabase Storage for file uploads and downloads
@@ -52,6 +50,7 @@
 ## 8. User Presence & Status
 - [ ] Implement real-time presence indicators (online, offline, away)
 - [ ] Allow users to set custom status messages
+- [ ] Implement typing indicators
 
 ## 9. Emoji Reactions
 - [x] Implement emoji reactions on messages

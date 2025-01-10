@@ -70,3 +70,15 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.status-indicator {
+  @apply relative inline-block;
+}
+
+.status-menu {
+  @apply absolute z-50 w-48 py-1 mt-2 bg-white rounded-md shadow-lg;
+}
+
+.status-option {
+  @apply block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer;
+}

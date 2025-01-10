@@ -6,7 +6,7 @@ import EmojiPicker from 'emoji-picker-react'
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { useSupabase } from "@/components/providers/supabase-provider"
-import { FileIcon } from "lucide-react"
+import { FileIcon, SmileIcon } from "lucide-react"
 
 interface MessageProps {
   id: string
@@ -46,7 +46,11 @@ export function Message({
   }
 
   return (
-    <div className="group flex items-start space-x-3 p-4 hover:bg-gray-50">
+    <div
+      className="group flex items-start space-x-3 p-4 hover:bg-gray-50"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <Avatar className="h-10 w-10">
         <AvatarImage src={avatar} alt={username} />
         <AvatarFallback>{username[0]}</AvatarFallback>
