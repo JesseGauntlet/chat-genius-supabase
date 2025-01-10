@@ -83,6 +83,7 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
         .from('channels')
         .select('*')
         .eq('workspace_id', workspaceId)
+        .eq('is_private', false)
         .order('name')
 
       if (error) throw error
@@ -95,13 +96,22 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
   const fetchDirectMessages = async () => {
     try {
       const { data, error } = await supabase
-        .from('members')
-        .select(`user:users(id, name)`)
-        .eq('workspace_id', workspaceId)
-        .neq('user_id', user?.id)
+        .from('channels')
+        .select(`
+          id,
+          members:members!channel_id(user:users(id, name))
+        `)
+        .eq('is_private', true)
+        .eq('members.user_id', user?.id)
 
       if (error) throw error
-      setDirectMessages(data.map((member) => member.user))
+
+      const directMessages = data.map((channel) => ({
+        id: channel.id,
+        name: channel.id
+      }))
+
+      setDirectMessages(directMessages)
     } catch (error) {
       console.error('Error fetching direct messages:', error)
     }
@@ -191,18 +201,22 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
           </div>
           <div>
             <h3 className="mb-2 text-sm font-semibold text-gray-500">Direct Messages</h3>
-            <div className="space-y-1">
-              {directMessages.map((member) => (
-                <Button
-                  key={member.id}
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => onSelectMember(member.id)}
-                >
-                  {member.name}
-                </Button>
-              ))}
-            </div>
+            {directMessages.length > 0 ? (
+              <div className="space-y-1">
+                {directMessages.map((channel) => (
+                  <Button
+                    key={channel.id}
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => onSelectChannel(channel)}
+                  >
+                    {channel.name}
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No direct messages</p>
+            )}
           </div>
         </div>
       </div>
