@@ -6,6 +6,7 @@ import EmojiPicker from 'emoji-picker-react'
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { useSupabase } from "@/components/providers/supabase-provider"
+import { FileIcon } from "lucide-react"
 
 interface MessageProps {
   id: string
@@ -16,6 +17,13 @@ interface MessageProps {
   isPinned?: boolean
   reactions: Array<{ emoji: string; count: number }>
   onAddReaction: (messageId: string, emoji: string) => void
+  message: {
+    text: string
+    attachments?: Array<{
+      url: string
+      name: string
+    }>
+  }
 }
 
 export function Message({ 
@@ -26,7 +34,8 @@ export function Message({
   content, 
   isPinned, 
   reactions = [],
-  onAddReaction 
+  onAddReaction,
+  message
 }: MessageProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
@@ -37,14 +46,7 @@ export function Message({
   }
 
   return (
-    <div 
-      className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-lg"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false)
-        setShowEmojiPicker(false)
-      }}
-    >
+    <div className="group flex items-start space-x-3 p-4 hover:bg-gray-50">
       <Avatar className="h-10 w-10">
         <AvatarImage src={avatar} alt={username} />
         <AvatarFallback>{username[0]}</AvatarFallback>
@@ -58,6 +60,20 @@ export function Message({
           )}
         </div>
         <p className="text-gray-900">{content}</p>
+        
+        {message?.attachments?.map((attachment, index) => (
+          <div key={index} className="mt-2">
+            <a
+              href={attachment.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center space-x-2 text-sm text-blue-600 hover:underline"
+            >
+              <FileIcon className="h-4 w-4" />
+              <span>{attachment.name}</span>
+            </a>
+          </div>
+        ))}
         
         <div className="flex items-center gap-2 mt-2">
           {reactions.map(({ emoji, count }, index) => (

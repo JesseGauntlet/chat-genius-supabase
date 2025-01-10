@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import type { Database } from '@/lib/database.types'
 import { createChannel } from '@/utils/channel'
-import { Avatar, AvatarFallback } from "./ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 
 type Channel = Database['public']['Tables']['channels']['Row']
 type Workspace = Database['public']['Tables']['workspaces']['Row']
@@ -76,7 +76,7 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
     }
   }
 
-  const fetchChannels = async () => {
+  const fetchChannels = async (selectChannelId?: string) => {
     if (!workspaceId) return
 
     try {
@@ -89,12 +89,20 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
 
       if (error) throw error
       setChannels(workspaceChannels)
+
+      if (selectChannelId) {
+        const channelToSelect = workspaceChannels.find(c => c.id === selectChannelId)
+        if (channelToSelect) {
+          setSelectedChannelId(selectChannelId)
+          onSelectChannel(channelToSelect)
+        }
+      }
     } catch (error) {
       console.error('Error fetching channels:', error)
     }
   }
 
-  const fetchDirectMessages = async () => {
+  const fetchDirectMessages = async (selectChannelId?: string) => {
     try {
       const { data: channels, error: channelsError } = await supabase
         .from('channels')
@@ -129,6 +137,14 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
       })
 
       setDirectMessages(directMessages)
+
+      if (selectChannelId) {
+        const dmToSelect = directMessages.find(dm => dm.id === selectChannelId)
+        if (dmToSelect) {
+          setSelectedChannelId(selectChannelId)
+          onSelectChannel(dmToSelect)
+        }
+      }
     } catch (error) {
       console.error('Error fetching direct messages:', error)
     }
@@ -150,7 +166,8 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
 
       setNewChannelName('')
       setDialogOpen(false)
-      onSelectChannel(channel)
+      
+      await fetchChannels(channel.id)
     } catch (error) {
       console.error('Error creating channel:', error)
     } finally {
@@ -163,10 +180,54 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
     onSelectChannel(channel)
   }
 
+  useEffect(() => {
+    if (!workspaceId) return
+
+    const channelSubscription = supabase
+      .channel('channel-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'channels',
+          filter: `workspace_id=eq.${workspaceId}`
+        }, 
+        () => {
+          fetchChannels()
+        }
+      )
+      .subscribe()
+
+    const memberSubscription = supabase
+      .channel('member-changes')
+      .on('postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'members'
+        },
+        () => {
+          fetchDirectMessages()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      channelSubscription.unsubscribe()
+      memberSubscription.unsubscribe()
+    }
+  }, [workspaceId])
+
   return (
-    <div className="w-64 bg-gray-100 flex flex-col h-full">
-      <div className="p-4 border-b">
+    <div className="w-64 bg-purple-50 flex flex-col h-full">
+      <div className="p-4 border-b flex items-center justify-between bg-purple-100">
         <h2 className="font-semibold">{workspace?.name || 'Loading...'}</h2>
+        <Avatar className="h-8 w-8">
+          <AvatarImage src={user?.user_metadata?.avatar_url || ''} alt={user?.user_metadata?.name || ''} />
+          <AvatarFallback>
+            {user?.user_metadata?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
+          </AvatarFallback>
+        </Avatar>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-4">
@@ -175,7 +236,7 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
               <h3 className="text-sm font-semibold text-gray-500">Channels</h3>
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-gray-200">
+                  <Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-purple-100">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
@@ -206,8 +267,8 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
                   variant="ghost"
                   className={`w-full justify-start ${
                     selectedChannelId === channel.id
-                      ? 'bg-gray-200 hover:bg-gray-200'
-                      : 'hover:bg-gray-200'
+                      ? 'bg-purple-100 hover:bg-purple-100'
+                      : 'hover:bg-purple-100'
                   }`}
                   onClick={() => handleChannelClick(channel)}
                 >
@@ -226,10 +287,10 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
                     variant="ghost"
                     className={`w-full justify-start ${
                       selectedChannelId === channel.id
-                        ? 'bg-gray-200 hover:bg-gray-200'
-                        : 'hover:bg-gray-200'
+                        ? 'bg-purple-100 hover:bg-purple-100'
+                        : 'hover:bg-purple-100'
                     }`}
-                    onClick={() => onSelectChannel(channel)}
+                    onClick={() => handleChannelClick(channel)}
                   >
                     <div className="flex items-center space-x-2">
                       <Avatar className="h-5 w-5">

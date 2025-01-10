@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
 import { useSupabase } from '@/components/providers/supabase-provider'
 import type { Database } from '@/lib/database.types'
+import { FileUpload } from "@/components/file-upload"
 
 type Channel = Database['public']['Tables']['channels']['Row']
 
@@ -19,6 +20,13 @@ interface ChatMessage {
   content: string
   isPinned?: boolean
   reactions: Array<{ emoji: string; count: number }>
+  message: {
+    text: string
+    attachments?: Array<{
+      url: string
+      name: string
+    }>
+  }
 }
 
 interface ChannelResponse {
@@ -168,7 +176,8 @@ export default function ChatPage() {
               minute: '2-digit' 
             }),
             content: message.message.text,
-            reactions
+            reactions,
+            message: message.message
           }
         })
       )
@@ -267,8 +276,13 @@ export default function ChatPage() {
               id: payload.new.id,
               avatar: "/placeholder.svg",
               username: user.name || 'Unknown User',
-              timestamp: new Date(payload.new.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              timestamp: new Date(payload.new.created_at).toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              }),
               content: payload.new.message.text,
+              reactions: [],
+              message: payload.new.message
             }])
           }
         }
@@ -308,6 +322,27 @@ export default function ChatPage() {
     }
   }, [messages])
 
+  const handleFileUpload = async (fileUrl: string, fileName: string) => {
+    if (!activeChannel?.id || !user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('chat')
+        .insert({
+          channel_id: activeChannel.id,
+          user_id: user.id,
+          message: {
+            text: `Shared a file: ${fileName}`,
+            attachments: [{ url: fileUrl, name: fileName }]
+          }
+        })
+
+      if (error) throw error
+    } catch (error) {
+      console.error('Error sending file message:', error)
+    }
+  }
+
   if (!workspaceId) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -341,7 +376,13 @@ export default function ChatPage() {
             />
           ))}
         </div>
-        <MessageInput onSendMessage={handleSendMessage} />
+        <div className="flex items-center space-x-2 p-4 border-t">
+          <FileUpload 
+            channelId={activeChannel?.id || ''}
+            onUploadComplete={handleFileUpload} 
+          />
+          <MessageInput onSendMessage={handleSendMessage} />
+        </div>
       </main>
     </div>
   )

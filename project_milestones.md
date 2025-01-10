@@ -46,17 +46,16 @@
 - [ ] (Optional) Integrate with an external search engine for advanced searching
 
 ## 7. File Sharing
-- [ ] Set up Supabase Storage for file uploads and downloads
-- [ ] Implement file sharing within channels and DMs
-- [ ] Handle large file uploads using signed URLs
+- [x] Set up Supabase Storage for file uploads and downloads
+- [x] Implement file sharing within channels and DMs
 
 ## 8. User Presence & Status
 - [ ] Implement real-time presence indicators (online, offline, away)
 - [ ] Allow users to set custom status messages
 
 ## 9. Emoji Reactions
-- [ ] Implement emoji reactions on messages
-- [ ] Store emoji reactions in the `emojis` table
+- [x] Implement emoji reactions on messages
+- [x] Store emoji reactions in the `emojis` table
 
 ## 10. AI Integrations (Python Backend)
 - [ ] Set up the Python backend to connect to the Supabase database
