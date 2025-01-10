@@ -14,6 +14,7 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog"
 import type { Database } from '@/lib/database.types'
+import { createChannel } from '@/utils/channel'
 
 type Channel = Database['public']['Tables']['channels']['Row']
 type Workspace = Database['public']['Tables']['workspaces']['Row']
@@ -22,15 +23,10 @@ type MemberInsert = Database['public']['Tables']['members']['Insert']
 
 interface SidebarProps {
   onSelectChannel: (channel: Channel) => void
-  onSelectDM: (dmId: string) => void
+  onSelectMember: (memberId: string) => void
 }
 
-const directMessages = [
-  { id: '1', name: 'John Smith' },
-  { id: '2', name: 'Jane Doe' },
-]
-
-export function Sidebar({ onSelectChannel, onSelectDM }: SidebarProps) {
+export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
   const { supabase, user } = useSupabase()
   const searchParams = useSearchParams()
   const workspaceId = searchParams.get('workspace')
@@ -40,6 +36,7 @@ export function Sidebar({ onSelectChannel, onSelectDM }: SidebarProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [channels, setChannels] = useState<Channel[]>([])
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
+  const [directMessages, setDirectMessages] = useState<any[]>([])
 
   useEffect(() => {
     if (workspaceId) {
@@ -54,6 +51,12 @@ export function Sidebar({ onSelectChannel, onSelectDM }: SidebarProps) {
       setSelectedChannelId(channelId)
     }
   }, [searchParams])
+
+  useEffect(() => {
+    if (user) {
+      fetchDirectMessages()
+    }
+  }, [user])
 
   const fetchWorkspace = async () => {
     if (!workspaceId) return
@@ -89,26 +92,34 @@ export function Sidebar({ onSelectChannel, onSelectDM }: SidebarProps) {
     }
   }
 
+  const fetchDirectMessages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('members')
+        .select(`user:users(id, name)`)
+        .eq('workspace_id', workspaceId)
+        .neq('user_id', user?.id)
+
+      if (error) throw error
+      setDirectMessages(data.map((member) => member.user))
+    } catch (error) {
+      console.error('Error fetching direct messages:', error)
+    }
+  }
+
   const handleCreateChannel = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!workspaceId || !user || !newChannelName.trim()) return
 
     setIsCreatingChannel(true)
     try {
-      // Create the channel
-      const channelData: ChannelInsert = {
-        name: newChannelName.toLowerCase().replace(/\s+/g, '-'),
-        workspace_id: workspaceId,
-        is_private: false,
-      }
-
-      const { data: channel, error: channelError } = await supabase
-        .from('channels')
-        .insert([channelData])
-        .select()
-        .single()
-
-      if (channelError) throw channelError
+      const channel = await createChannel(
+        supabase,
+        workspaceId,
+        user.id,
+        newChannelName,
+        false
+      )
 
       setNewChannelName('')
       setDialogOpen(false)
@@ -181,14 +192,14 @@ export function Sidebar({ onSelectChannel, onSelectDM }: SidebarProps) {
           <div>
             <h3 className="mb-2 text-sm font-semibold text-gray-500">Direct Messages</h3>
             <div className="space-y-1">
-              {directMessages.map((dm) => (
+              {directMessages.map((member) => (
                 <Button
-                  key={dm.id}
+                  key={member.id}
                   variant="ghost"
                   className="w-full justify-start"
-                  onClick={() => onSelectDM(dm.id)}
+                  onClick={() => onSelectMember(member.id)}
                 >
-                  {dm.name}
+                  {member.name}
                 </Button>
               ))}
             </div>

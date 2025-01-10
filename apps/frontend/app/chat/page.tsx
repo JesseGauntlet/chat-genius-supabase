@@ -34,12 +34,19 @@ export default function ChatPage() {
   const [activeChat, setActiveChat] = useState<{ type: 'channel' | 'dm', id: string | null }>({ type: 'channel', id: null })
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null)
+  const [memberCount, setMemberCount] = useState(0)
 
   useEffect(() => {
     if (workspaceId && user) {
       fetchChannels()
     }
   }, [workspaceId, user])
+
+  useEffect(() => {
+    if (workspaceId) {
+      fetchMemberCount()
+    }
+  }, [workspaceId])
 
   const fetchChannels = async () => {
     if (!workspaceId) return
@@ -76,6 +83,22 @@ export default function ChatPage() {
     }
   }
 
+  const fetchMemberCount = async () => {
+    if (!workspaceId) return
+
+    try {
+      const { count, error } = await supabase
+        .from('members')
+        .select('*', { count: 'exact' })
+        .eq('workspace_id', workspaceId)
+
+      if (error) throw error
+      setMemberCount(count || 0)
+    } catch (error) {
+      console.error('Error fetching member count:', error)
+    }
+  }
+
   const handleSelectChannel = (channel: Channel) => {
     setActiveChat({ type: 'channel', id: channel.id })
     setActiveChannel(channel)
@@ -83,6 +106,11 @@ export default function ChatPage() {
 
   const handleSelectDM = (dmId: string) => {
     setActiveChat({ type: 'dm', id: dmId })
+    // TODO: Fetch messages for the selected DM
+  }
+
+  const handleSelectMember = (memberId: string) => {
+    setActiveChat({ type: 'dm', id: memberId })
     // TODO: Fetch messages for the selected DM
   }
 
@@ -188,15 +216,20 @@ export default function ChatPage() {
       <Sidebar 
         channels={channels}
         onSelectChannel={handleSelectChannel} 
-        onSelectDM={handleSelectDM} 
+        onSelectMember={handleSelectMember} 
       />
       <main className="flex-1 flex flex-col overflow-hidden">
         <Header 
-          chatName={activeChannel 
-            ? `#${activeChannel.name}` 
-            : 'Unnamed Channel'
+          chatName={
+            activeChat.type === 'channel'
+              ? activeChannel
+                ? `#${activeChannel.name}`
+                : 'Unnamed Channel'
+              : 'Direct Message'
           } 
           workspaceId={workspaceId}
+          onSelectMember={handleSelectMember}
+          memberCount={memberCount}
         />
         <div className="flex-1 overflow-y-auto px-4 py-4">
           {messages.map((message) => (
