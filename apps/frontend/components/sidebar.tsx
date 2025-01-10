@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import type { Database } from '@/lib/database.types'
 import { createChannel } from '@/utils/channel'
+import { Avatar, AvatarFallback } from "./ui/avatar"
 
 type Channel = Database['public']['Tables']['channels']['Row']
 type Workspace = Database['public']['Tables']['workspaces']['Row']
@@ -223,10 +224,21 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
                   <Button
                     key={channel.id}
                     variant="ghost"
-                    className="w-full justify-start"
+                    className={`w-full justify-start ${
+                      selectedChannelId === channel.id
+                        ? 'bg-gray-200 hover:bg-gray-200'
+                        : 'hover:bg-gray-200'
+                    }`}
                     onClick={() => onSelectChannel(channel)}
                   >
-                    {channel.name}
+                    <div className="flex items-center space-x-2">
+                      <Avatar className="h-5 w-5">
+                        <AvatarFallback className="text-xs">
+                          {channel.name.split(',')[0].trim()[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>{channel.name}</span>
+                    </div>
                   </Button>
                 ))}
               </div>

@@ -29,6 +29,7 @@ export function Message({
   onAddReaction 
 }: MessageProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
 
   const handleEmojiSelect = (emojiData: any) => {
     onAddReaction(id, emojiData.emoji)
@@ -36,7 +37,14 @@ export function Message({
   }
 
   return (
-    <div className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-lg">
+    <div 
+      className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-lg"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false)
+        setShowEmojiPicker(false)
+      }}
+    >
       <Avatar className="h-10 w-10">
         <AvatarImage src={avatar} alt={username} />
         <AvatarFallback>{username[0]}</AvatarFallback>
@@ -63,20 +71,22 @@ export function Message({
             </button>
           ))}
           
-          <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-8 w-8 p-0"
-              >
-                😀
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-              <EmojiPicker onEmojiClick={handleEmojiSelect} />
-            </PopoverContent>
-          </Popover>
+          {isHovered && (
+            <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                >
+                  😀
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0">
+                <EmojiPicker onEmojiClick={handleEmojiSelect} />
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       </div>
     </div>
