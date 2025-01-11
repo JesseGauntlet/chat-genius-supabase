@@ -63,10 +63,9 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/',
-    '/chat',
-    '/workspaces',
-    '/auth/login',
-    '/auth/register',
-  ]
+    '/',               // Homepage
+    '/chat/:path*',    // Chat + nested routes
+    '/workspaces/:path*', // Workspaces + nested
+    '/auth/:path*',    // All auth subroutes: /auth/login, /auth/register, etc.
+  ],
 }

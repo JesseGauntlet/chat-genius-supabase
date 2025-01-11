@@ -11,10 +11,6 @@ type Workspace = Database['public']['Tables']['workspaces']['Row']
 type WorkspaceInsert = Database['public']['Tables']['workspaces']['Insert']
 type MemberInsert = Database['public']['Tables']['members']['Insert']
 
-interface WorkspaceResponse {
-  workspace: Workspace
-}
-
 export default function WorkspacesPage() {
   const { supabase, user } = useSupabase()
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
@@ -25,7 +21,7 @@ export default function WorkspacesPage() {
     if (user) {
       fetchWorkspaces()
     }
-  }, [user])
+  })
 
   const fetchWorkspaces = async () => {
     try {
@@ -162,7 +158,7 @@ export default function WorkspacesPage() {
 
           {workspaces.length === 0 && (
             <p className="text-muted-foreground text-center py-4">
-              You don't have any workspaces yet. Create one to get started!
+              No workspaces. Create one to get started!
             </p>
           )}
         </div>

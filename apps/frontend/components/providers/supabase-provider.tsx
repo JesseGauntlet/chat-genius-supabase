@@ -27,7 +27,7 @@ export default function SupabaseProvider({
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
-      router.refresh()
+      // router.refresh()
     })
 
     return () => {

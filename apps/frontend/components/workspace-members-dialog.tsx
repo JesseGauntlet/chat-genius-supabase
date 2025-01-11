@@ -18,7 +18,7 @@ interface WorkspaceMembersDialogProps {
 
 export function WorkspaceMembersDialog({ workspaceId, onSelectMember, memberCount }: WorkspaceMembersDialogProps) {
   const { supabase, user } = useSupabase()
-  const [members, setMembers] = useState<any[]>([])
+  const [members, setMembers] = useState<{ id: string; name: string }[]>([])
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
@@ -35,7 +35,7 @@ export function WorkspaceMembersDialog({ workspaceId, onSelectMember, memberCoun
         .eq('workspace_id', workspaceId)
 
       if (error) throw error
-      setMembers(data.map((member) => member.user))
+      setMembers(data.flatMap((member) => member.user))
     } catch (error) {
       console.error('Error fetching workspace members:', error)
     }

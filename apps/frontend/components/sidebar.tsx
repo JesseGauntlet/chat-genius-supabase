@@ -19,15 +19,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 
 type Channel = Database['public']['Tables']['channels']['Row']
 type Workspace = Database['public']['Tables']['workspaces']['Row']
-type ChannelInsert = Database['public']['Tables']['channels']['Insert']
-type MemberInsert = Database['public']['Tables']['members']['Insert']
 
 interface SidebarProps {
   onSelectChannel: (channel: Channel) => void
   onSelectMember: (memberId: string) => void
 }
 
-export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
+export function Sidebar({ onSelectChannel }: SidebarProps) {
   const { supabase, user } = useSupabase()
   const searchParams = useSearchParams()
   const workspaceId = searchParams.get('workspace')
@@ -37,7 +35,7 @@ export function Sidebar({ onSelectChannel, onSelectMember }: SidebarProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [channels, setChannels] = useState<Channel[]>([])
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
-  const [directMessages, setDirectMessages] = useState<any[]>([])
+  const [directMessages, setDirectMessages] = useState<{ id: string; name: string; channel_id: string }[]>([])
 
   useEffect(() => {
     if (workspaceId) {

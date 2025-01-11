@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
@@ -33,12 +33,27 @@ interface ChannelResponse {
   channel: Channel | null
 }
 
-export default function ChatPage() {
+// Message with join on users for name
+interface DatabaseMessage {
+  id: string;
+  message: {
+    text: string;
+    attachments?: Array<{
+      url: string;
+      name: string;
+    }>;
+  };
+  created_at: string;
+  user: {
+    id: string;
+    name: string;
+  };
+}
+
+function ChatPageContent() {
   const { supabase, user } = useSupabase()
   const searchParams = useSearchParams()
   const workspaceId = searchParams.get('workspace')
-  
-  const [channels, setChannels] = useState<Channel[]>([])
   const [activeChat, setActiveChat] = useState<{ type: 'channel' | 'dm', id: string | null }>({ type: 'channel', id: null })
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null)
@@ -80,8 +95,6 @@ export default function ChatPage() {
         .map(mc => mc.channel)
         .filter((c): c is Channel => c !== null)
 
-      setChannels(channelList)
-
       // Set first channel as active if none selected
       if (!activeChat.id && channelList.length > 0) {
         setActiveChat({ type: 'channel', id: channelList[0].id })
@@ -110,11 +123,6 @@ export default function ChatPage() {
   const handleSelectChannel = (channel: Channel) => {
     setActiveChat({ type: 'channel', id: channel.id })
     setActiveChannel(channel)
-  }
-
-  const handleSelectDM = (dmId: string) => {
-    setActiveChat({ type: 'dm', id: dmId })
-    // TODO: Fetch messages for the selected DM
   }
 
   const handleSelectMember = (memberId: string) => {
@@ -160,6 +168,7 @@ export default function ChatPage() {
         `)
         .eq('channel_id', channelId)
         .order('created_at', { ascending: true })
+        .returns<DatabaseMessage[]>()
 
       if (error) throw error
 
@@ -170,14 +179,15 @@ export default function ChatPage() {
           return {
             id: message.id,
             avatar: "/placeholder.svg",
-            username: message.user?.[0]?.name || 'Unknown User',
+            username: message.user.name,
             timestamp: new Date(message.created_at).toLocaleTimeString([], { 
               hour: '2-digit', 
               minute: '2-digit' 
             }),
             content: message.message.text,
             reactions,
-            message: message.message
+            message: message.message,
+            user: message.user
           }
         })
       )
@@ -326,7 +336,7 @@ export default function ChatPage() {
     if (!activeChannel?.id || !user) return;
     
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('chat')
         .insert({
           channel_id: activeChannel.id,
@@ -387,5 +397,13 @@ export default function ChatPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ChatPageContent />
+    </Suspense>
   )
 }

@@ -5,8 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import EmojiPicker from 'emoji-picker-react'
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { useSupabase } from "@/components/providers/supabase-provider"
-import { FileIcon, SmileIcon } from "lucide-react"
+import { FileIcon } from "lucide-react"
 
 interface MessageProps {
   id: string
@@ -40,7 +39,7 @@ export function Message({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
-  const handleEmojiSelect = (emojiData: any) => {
+  const handleEmojiSelect = (emojiData: { emoji: string }) => {
     onAddReaction(id, emojiData.emoji)
     setShowEmojiPicker(false)
   }
@@ -96,8 +95,8 @@ export function Message({
               <PopoverTrigger asChild>
                 <Button 
                   variant="ghost" 
-                  size="sm"
-                  className="h-8 w-8 p-0"
+                  size="lg"
+                  className="h-8 w-8 p-0 text-xl"
                 >
                   😀
                 </Button>
