@@ -31,19 +31,6 @@ export default function LoginPage() {
     }
   }
 
-  const handleGoogleLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
-      if (error) throw error
-    } catch (error) {
-      console.error('Error logging in with Google:', error)
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -90,21 +77,12 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        onClick={handleGoogleLogin}
-      >
-        Continue with Google
-      </Button>
-
       <div className="text-center text-sm">
         No account?{' '}
-        <Link href="/auth/register" className="text-primary hover:underline">
+        <Link href="/auth/register" prefetch={false} className="text-primary hover:underline">
           Create one
         </Link>
       </div>
     </div>
   )
-} 
+}

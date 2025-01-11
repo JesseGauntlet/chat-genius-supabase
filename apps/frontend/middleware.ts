@@ -9,8 +9,17 @@ const ROUTES = {
 }
 
 export async function middleware(req: NextRequest) {
-  const pathname = req.nextUrl.pathname
-  const searchParams = req.nextUrl.searchParams
+  // If for some reason req.url is empty, bail out:
+  if (!req.url) {
+    return NextResponse.next()
+  }
+
+  const { pathname, searchParams } = req.nextUrl
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
+  const {
+    data: { session }
+  } = await supabase.auth.getSession()
 
   // If the route isn't in our defined routes, let Next.js handle it (e.g., show 404)
   const isKnownRoute = 
@@ -20,18 +29,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next()
   }
 
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
-  const { data: { session } } = await supabase.auth.getSession()
-
-  // Allow access to auth routes when not logged in
-  if (!session && ROUTES.auth.has(pathname)) {
-    return res
+  // For any route that needs a workspace param in /chat
+  if (session && pathname === '/chat' && !searchParams.get('workspace')) {
+    const url = req.nextUrl.clone()
+    url.pathname = '/workspaces'
+    return NextResponse.redirect(url)
   }
 
-  // If user is signed in and on auth routes or home, redirect to chat
-  if (session && (pathname === '/' || ROUTES.auth.has(pathname))) {
-    // Get user's workspaces
+  // If user has a workspace, redirect to chat
+  // Example usage:
+  if (session && (pathname === '/' || pathname === '/auth/login')) {
     const { data: memberWorkspaces } = await supabase
       .from('members')
       .select('workspace_id')
@@ -39,33 +46,24 @@ export async function middleware(req: NextRequest) {
       .limit(1)
       .single()
 
-    // If user has a workspace, redirect to chat with that workspace
     if (memberWorkspaces?.workspace_id) {
-      return NextResponse.redirect(new URL(`/chat?workspace=${memberWorkspaces.workspace_id}`, req.url))
+      const url = req.nextUrl.clone()
+      url.pathname = '/chat'
+      url.searchParams.set('workspace', memberWorkspaces.workspace_id.toString())
+      return NextResponse.redirect(url)
+    } else {
+      const url = req.nextUrl.clone()
+      url.pathname = '/workspaces'
+      return NextResponse.redirect(url)
     }
-    
-    // If no workspace, redirect to workspaces page
-    return NextResponse.redirect(new URL('/workspaces', req.url))
   }
 
-  // If accessing chat without workspace param, redirect to workspaces
-  if (session && pathname === '/chat' && !searchParams.get('workspace')) {
-    return NextResponse.redirect(new URL('/workspaces', req.url))
-  }
-
-  // If user is not signed in and trying to access protected routes, redirect to login
-  if (!session && ROUTES.protected.has(pathname)) {
-    return NextResponse.redirect(new URL('/auth/login', req.url))
+  // If user is not signed in and trying to access protected routes
+  if (!session && pathname.startsWith('/chat')) {
+    const url = req.nextUrl.clone()
+    url.pathname = '/auth/login'
+    return NextResponse.redirect(url)
   }
 
   return res
-}
-
-export const config = {
-  matcher: [
-    '/',               // Homepage
-    '/chat/:path*',    // Chat + nested routes
-    '/workspaces/:path*', // Workspaces + nested
-    '/auth/:path*',    // All auth subroutes: /auth/login, /auth/register, etc.
-  ],
 }

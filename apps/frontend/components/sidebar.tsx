@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button } from "./ui/button"
 import { useSupabase } from '@/components/providers/supabase-provider'
@@ -25,7 +25,7 @@ interface SidebarProps {
   onSelectMember: (memberId: string) => void
 }
 
-export function Sidebar({ onSelectChannel }: SidebarProps) {
+function SidebarContent({ onSelectChannel }: SidebarProps) {
   const { supabase, user } = useSupabase()
   const searchParams = useSearchParams()
   const workspaceId = searchParams.get('workspace')
@@ -308,5 +308,17 @@ export function Sidebar({ onSelectChannel }: SidebarProps) {
         </div>
       </div>
     </div>
+  )
+}
+
+export function Sidebar({ onSelectChannel }: SidebarProps) {
+  return (
+    <Suspense fallback={
+      <div className="w-64 bg-purple-100 flex flex-col h-full">
+        <div className="p-4">Loading sidebar...</div>
+      </div>
+    }>
+      <SidebarContent onSelectChannel={onSelectChannel} />
+    </Suspense>
   )
 } 

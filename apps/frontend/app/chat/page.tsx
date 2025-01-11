@@ -59,17 +59,7 @@ function ChatPageContent() {
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null)
   const [memberCount, setMemberCount] = useState(0)
 
-  useEffect(() => {
-    if (workspaceId && user) {
-      fetchChannels()
-    }
-  }, [workspaceId, user])
 
-  useEffect(() => {
-    if (workspaceId) {
-      fetchMemberCount()
-    }
-  }, [workspaceId])
 
   const fetchChannels = async () => {
     if (!workspaceId) return
@@ -239,11 +229,7 @@ function ChatPageContent() {
     }
   }, [user, supabase])
 
-  useEffect(() => {
-    if (activeChat.id && activeChat.type === 'channel') {
-      fetchMessages(activeChat.id)
-    }
-  }, [activeChat])
+
 
   const handleSendMessage = async (content: string) => {
     if (!activeChat.id || !user) return
@@ -262,7 +248,24 @@ function ChatPageContent() {
       console.error('Error sending message:', error)
     }
   }
+  useEffect(() => {
+    if (activeChat.id && activeChat.type === 'channel') {
+      fetchMessages(activeChat.id)
+    }
+  }, [activeChat])
 
+  useEffect(() => {
+    if (workspaceId && user) {
+      fetchChannels()
+    }
+  }, [workspaceId, user])
+
+  useEffect(() => {
+    if (workspaceId) {
+      fetchMemberCount()
+    }
+  }, [workspaceId])
+  
   useEffect(() => {
     const channel = supabase
       .channel('chat')
