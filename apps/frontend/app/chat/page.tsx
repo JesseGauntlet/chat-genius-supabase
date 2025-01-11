@@ -170,7 +170,7 @@ export default function ChatPage() {
           return {
             id: message.id,
             avatar: "/placeholder.svg",
-            username: message.user?.name || 'Unknown User',
+            username: message.user?.[0]?.name || 'Unknown User',
             timestamp: new Date(message.created_at).toLocaleTimeString([], { 
               hour: '2-digit', 
               minute: '2-digit' 
@@ -353,14 +353,14 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar 
-        channels={channels}
+        // channels={channels}
         onSelectChannel={handleSelectChannel} 
         onSelectMember={handleSelectMember} 
       />
       <main className="flex-1 flex flex-col overflow-hidden">
         <Header 
           chatName={activeChat.type === 'channel' 
-            ? activeChannel?.name 
+            ? (activeChannel?.name || 'Unknown Channel')
             : 'Direct Message'
           }
           workspaceId={workspaceId}
