@@ -38,7 +38,7 @@ export default function RegisterPage() {
           .from('workspaces')
           .insert([
             {
-              name: 'My Workspace',
+              name: `${name}'s Workspace`,
               owner_id: authData.user.id,
             },
           ])

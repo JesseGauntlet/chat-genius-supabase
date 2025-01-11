@@ -6,12 +6,14 @@ import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
   const { supabase } = useSupabase()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   const handleEmailLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -24,6 +26,8 @@ export default function LoginPage() {
       })
 
       if (error) throw error
+
+      router.push('/workspaces')
     } catch (error) {
       console.error('Error logging in:', error)
     } finally {
