@@ -10,16 +10,16 @@ export default async function Home() {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // if (!session) {
-  //   redirect('/auth/login')
-  // }
+  if (!session) {
+    redirect('/auth/login')
+  }
 
-  // const handleSignOut = async () => {
-  //   'use server'
-  //   const supabase = createServerComponentClient({ cookies })
-  //   await supabase.auth.signOut()
-  //   redirect('/auth/login')
-  // }
+  const handleSignOut = async () => {
+    'use server'
+    const supabase = createServerComponentClient({ cookies })
+    await supabase.auth.signOut()
+    redirect('/auth/login')
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center">
