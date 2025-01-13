@@ -46,6 +46,7 @@ interface DatabaseMessage {
     }>;
   };
   created_at: string;
+  total_replies: number;
   user: {
     id: string;
     name: string;
@@ -152,9 +153,9 @@ function ChatPageContent() {
         .from('chat')
         .select(`
           id,
-          channel_id,
           message,
           created_at,
+          total_replies,
           user:user_id (
             id,
             name
@@ -172,7 +173,6 @@ function ChatPageContent() {
           const reactions = await fetchMessageReactions(message.id)
           return {
             id: message.id,
-            channel_id: message.channel_id,
             avatar: "/placeholder.svg",
             username: message.user.name,
             timestamp: new Date(message.created_at).toLocaleTimeString([], { 
@@ -183,7 +183,7 @@ function ChatPageContent() {
             reactions,
             message: {
               ...message.message,
-              total_replies: 0
+              total_replies: message.total_replies || 0
             }
           }
         })
@@ -304,6 +304,27 @@ function ChatPageContent() {
               reactions: [],
               message: payload.new.message
             }])
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'chat' },
+        (payload) => {
+          if (payload.new.total_replies !== payload.old.total_replies) {
+            setMessages(prevMessages => 
+              prevMessages.map(msg => 
+                msg.id === payload.new.id 
+                  ? {
+                      ...msg,
+                      message: {
+                        ...msg.message,
+                        total_replies: payload.new.total_replies
+                      }
+                    }
+                  : msg
+              )
+            )
           }
         }
       )

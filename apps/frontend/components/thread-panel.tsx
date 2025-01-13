@@ -46,7 +46,9 @@ export function ThreadPanel({ parentMessage, onClose }: ThreadPanelProps) {
         id,
         message,
         created_at,
-        user:user_id (
+        channel_id,
+        user_id,
+        user:users!user_id (
           id,
           name
         )
@@ -61,37 +63,30 @@ export function ThreadPanel({ parentMessage, onClose }: ThreadPanelProps) {
     const channel = supabase
       .channel(`thread-${parentMessage.id}`)
       .on('postgres_changes', {
-        event: 'INSERT',
+        event: '*',
         schema: 'public',
         table: 'chat',
         filter: `parent_id=eq.${parentMessage.id}`
       }, async (payload) => {
         if (payload.eventType === 'INSERT') {
-          const { data: joinedReply, error } = await supabase
-            .from('chat')
-            .select(`
-              id,
-              channel_id,
-              message,
-              created_at,
-              user:user_id (
-                id,
-                name
-              )
-            `)
-            .eq('id', payload.new.id)
+          // Fetch the user data for the new reply
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id, name')
+            .eq('id', payload.new.user_id)
             .single()
 
-          if (error) {
-            console.error('Error fetching new thread reply user info:', error)
-            return
+          // Combine the new message with its user data
+          const newReply = {
+            ...payload.new,
+            user: userData
           }
-
-          setReplies(prev => [...prev, joinedReply])
+          
+          setReplies(prev => [...prev, newReply])
         }
       })
       .subscribe()
-
+      
     return () => {
       supabase.removeChannel(channel)
     }
@@ -108,7 +103,7 @@ export function ThreadPanel({ parentMessage, onClose }: ThreadPanelProps) {
     })
     
     // Update parent message reply count
-    await supabase.rpc('increment_reply_count', {
+    await supabase.rpc('increment_total_replies', {
       message_id: parentMessage.id
     })
     
@@ -125,7 +120,7 @@ export function ThreadPanel({ parentMessage, onClose }: ThreadPanelProps) {
       </div>
       
       <div className="flex-1 overflow-y-auto p-4">
-        <Message {...parentMessage} showActions={false} />
+        <Message {...parentMessage} showActions={false} showReplyCount={false} />
         <div className="my-4 border-b" />
         
         {replies.map((reply) => {

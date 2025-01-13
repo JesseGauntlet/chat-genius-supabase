@@ -26,7 +26,7 @@ interface MessageProps {
   }
   onThreadOpen?: (message: any) => void
   showActions?: boolean
-  channel_id: string
+  showReplyCount?: boolean
 }
 
 export function Message({ 
@@ -41,7 +41,7 @@ export function Message({
   message,
   onThreadOpen,
   showActions = true,
-  channel_id
+  showReplyCount = true
 }: MessageProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
@@ -127,8 +127,7 @@ export function Message({
                     content,
                     isPinned,
                     reactions,
-                    message,
-                    channel_id
+                    message
                   })}
                 >
                   <MessageCircle className="h-4 w-4 text-gray-500 hover:text-gray-700" />
@@ -138,13 +137,10 @@ export function Message({
           )}
         </div>
         
-        {message?.total_replies > 0 && (
-          <button
-            onClick={() => onThreadOpen?.(message)}
-            className="mt-1 text-sm text-blue-500 hover:underline"
-          >
-            {message.total_replies} {message.total_replies === 1 ? 'reply' : 'replies'}
-          </button>
+        {showReplyCount && message.total_replies > 0 && (
+          <div className="text-sm text-gray-500">
+            {message.total_replies} replies
+          </div>
         )}
       </div>
     </div>
