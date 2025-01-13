@@ -6,9 +6,7 @@ import type { Database } from "@/lib/database.types"
 import { useSupabase } from "@/components/providers/supabase-provider"
 import { useEffect, useState } from "react"
 
-type Channel = Database["public"]["Tables"]["channels"]["Row"] & {
-  displayName: string
-}
+type Channel = Database["public"]["Tables"]["channels"]["Row"]
 
 interface DirectMessagesListProps {
   directChannels: Channel[]
