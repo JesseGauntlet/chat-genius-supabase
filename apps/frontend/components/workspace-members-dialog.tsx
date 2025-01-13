@@ -20,12 +20,29 @@ export function WorkspaceMembersDialog({ workspaceId, onSelectMember, memberCoun
   const { supabase, user } = useSupabase()
   const [members, setMembers] = useState<{ id: string; name: string }[]>([])
   const [open, setOpen] = useState(false)
+  const [currentUserName, setCurrentUserName] = useState('')
 
   useEffect(() => {
     if (open) {
       fetchWorkspaceMembers()
+      fetchCurrentUser()
     }
   }, [open, workspaceId])
+
+  const fetchCurrentUser = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', user?.id)
+        .single()
+
+      if (error) throw error
+      setCurrentUserName(data.name)
+    } catch (error) {
+      console.error('Error fetching current user:', error)
+    }
+  }
 
   const fetchWorkspaceMembers = async () => {
     try {
@@ -41,35 +58,26 @@ export function WorkspaceMembersDialog({ workspaceId, onSelectMember, memberCoun
     }
   }
 
-  const handleSelectMember = async (memberId: string) => {
+  const handleSelectMember = async (memberId: string, memberName: string) => {
     if (!workspaceId || !user) return
 
     try {
-      const channelName = `dm-${memberId}`
-      const channel = await createChannel(
-        supabase,
-        workspaceId,
-        memberId,
-        channelName,
-        true
-      )
-
-      await supabase.from('members').insert({
-        user_id: user.id,
-        channel_id: channel.id,
-        role: 'admin',
+      const channelName = `${currentUserName},${memberName}`
+      const { data, error } = await supabase.rpc('create_channel_with_members', {
+        p_workspace_id: workspaceId,
+        p_member_id: memberId,
+        p_channel_name: channelName,
+        p_current_user_id: user.id,
+        p_is_private: true
       })
 
-      await supabase.from('members').insert({
-        user_id: memberId,
-        channel_id: channel.id,
-        role: 'admin',
-      })
-
+      if (error) throw error
+      
+      const channel = data
       onSelectMember(channel.id)
       setOpen(false)
     } catch (error) {
-      console.error('Error creating direct message channel:', error)
+      console.error('Error creating channel with members:', error)
     }
   }
 
@@ -103,7 +111,7 @@ export function WorkspaceMembersDialog({ workspaceId, onSelectMember, memberCoun
             <div
               key={member.id}
               className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-2 rounded"
-              onClick={() => handleSelectMember(member.id)}
+              onClick={() => handleSelectMember(member.id, member.name)}
             >
               <Avatar>
                 <AvatarImage src="/placeholder.svg" />

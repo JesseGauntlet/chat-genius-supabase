@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
 import { useRouter } from 'next/navigation'
+import { updateUserMetadata } from '@/utils/auth'
 
 export default function LoginPage() {
   const { supabase } = useSupabase()
@@ -20,16 +21,23 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: { user }, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) throw error
 
-      router.push('/workspaces')
+      if (user) {
+        // Update user metadata after successful login
+        await updateUserMetadata(supabase, user.id)
+      }
+
+      // Redirect or handle successful login
+      router.push('/')
     } catch (error) {
-      console.error('Error logging in:', error)
+      console.error('Error:', error)
+      setError('Invalid login credentials')
     } finally {
       setLoading(false)
     }

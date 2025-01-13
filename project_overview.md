@@ -85,8 +85,10 @@ Below is a high-level outline of the tables (entities) needed to fulfill the req
 ### **2. `members`**
 - **id (PK)**  
 - **user_id (FK)** → `users.id`  
+- **workspace_id (FK)** → `workspaces.id`  
 - **channel_id (FK)** → `channels.id`  
 - **created_at**
+- **role** (enum: admin, member, guest)
 
 ### **3. `channels`**
 - **id (PK)**  
@@ -94,11 +96,12 @@ Below is a high-level outline of the tables (entities) needed to fulfill the req
 - **description**  
 - **created_at**  
 - **is_private** (boolean)
+- **workspace_id (FK)** → `workspaces.id`
 
 ### **4. `workspaces`**
 - **id (PK)**  
 - **name**  
-- **channel_id (FK)** → (the default channel for this workspace)  
+- **owner_id**
 - **created_at**
 
 ### **5. `shared_channels`**
@@ -126,6 +129,12 @@ Below is a high-level outline of the tables (entities) needed to fulfill the req
 - **user_id (FK)** → `users.id`  
 - **chat_id (FK)** → `chat.id`  
 - **emoji_uni_code** (string representing the emoji)
+
+### **8. `presence`**
+- **user_id (PK, FK)** → `users.id`  
+- **status** (enum: online, offline, away)
+- **last_seen**
+- **custom_status** (string)
 
 ---
 
