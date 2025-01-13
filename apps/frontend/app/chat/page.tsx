@@ -9,6 +9,7 @@ import { Header } from "@/components/header"
 import { useSupabase } from '@/components/providers/supabase-provider'
 import type { Database } from '@/lib/database.types'
 import { FileUpload } from "@/components/file-upload"
+import { ThreadPanel } from '@/components/thread-panel'
 
 type Channel = Database['public']['Tables']['channels']['Row']
 
@@ -26,6 +27,7 @@ interface ChatMessage {
       url: string
       name: string
     }>
+    total_replies: number
   }
 }
 
@@ -44,6 +46,7 @@ interface DatabaseMessage {
     }>;
   };
   created_at: string;
+  total_replies: number;
   user: {
     id: string;
     name: string;
@@ -58,6 +61,7 @@ function ChatPageContent() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null)
   const [memberCount, setMemberCount] = useState(0)
+  const [activeThread, setActiveThread] = useState(null)
 
 
 
@@ -149,14 +153,17 @@ function ChatPageContent() {
         .from('chat')
         .select(`
           id,
+          channel_id,
           message,
           created_at,
+          total_replies,
           user:user_id (
             id,
             name
           )
         `)
         .eq('channel_id', channelId)
+        .is('parent_id', null)
         .order('created_at', { ascending: true })
         .returns<DatabaseMessage[]>()
 
@@ -168,6 +175,7 @@ function ChatPageContent() {
           const reactions = await fetchMessageReactions(message.id)
           return {
             id: message.id,
+            channel_id: message.channel_id,
             avatar: "/placeholder.svg",
             username: message.user.name,
             timestamp: new Date(message.created_at).toLocaleTimeString([], { 
@@ -176,8 +184,10 @@ function ChatPageContent() {
             }),
             content: message.message.text,
             reactions,
-            message: message.message,
-            user: message.user
+            message: {
+              ...message.message,
+              total_replies: message.total_replies || 0
+            }
           }
         })
       )
@@ -271,7 +281,12 @@ function ChatPageContent() {
       .channel('chat')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'chat' },
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'chat',
+          filter: `channel_id=eq.${activeChat.id} AND parent_id=is.null`
+        },
         async (payload) => {
           if (payload.new.channel_id === activeChat.id) {
             const { data: user, error } = await supabase
@@ -287,6 +302,7 @@ function ChatPageContent() {
 
             setMessages(prevMessages => [...prevMessages, {
               id: payload.new.id,
+              channel_id: payload.new.channel_id,
               avatar: "/placeholder.svg",
               username: user.name || 'Unknown User',
               timestamp: new Date(payload.new.created_at).toLocaleTimeString([], { 
@@ -295,9 +311,37 @@ function ChatPageContent() {
               }),
               content: payload.new.message.text,
               reactions: [],
-              message: payload.new.message
+              message: {
+                ...payload.new.message,
+                total_replies: 0
+              }
             }])
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'chat',
+          filter: `channel_id=eq.${activeChat.id} AND parent_id=is.null`,
+        },
+        (payload) => {
+          // Update the reply count for the message
+          setMessages(prevMessages =>
+            prevMessages.map(msg =>
+              msg.id === payload.new.id
+                ? {
+                    ...msg,
+                    message: {
+                      ...msg.message,
+                      total_replies: payload.new.total_replies || 0
+                    }
+                  }
+                : msg
+            )
+          )
         }
       )
       .subscribe()
@@ -386,6 +430,7 @@ function ChatPageContent() {
               key={message.id} 
               {...message} 
               onAddReaction={handleAddReaction}
+              onThreadOpen={setActiveThread}
             />
           ))}
         </div>
@@ -399,6 +444,12 @@ function ChatPageContent() {
           </div>
         </div>
       </main>
+      {activeThread && (
+        <ThreadPanel
+          parentMessage={activeThread}
+          onClose={() => setActiveThread(null)}
+        />
+      )}
     </div>
   )
 }

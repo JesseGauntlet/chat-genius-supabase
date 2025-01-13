@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import EmojiPicker from 'emoji-picker-react'
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { FileIcon } from "lucide-react"
+import { FileIcon, MessageCircle } from "lucide-react"
 
 interface MessageProps {
   id: string
@@ -22,7 +22,11 @@ interface MessageProps {
       url: string
       name: string
     }>
+    total_replies: number
   }
+  onThreadOpen?: (message: any) => void
+  showActions?: boolean
+  channel_id: string
 }
 
 export function Message({ 
@@ -34,7 +38,10 @@ export function Message({
   isPinned, 
   reactions = [],
   onAddReaction,
-  message
+  message,
+  onThreadOpen,
+  showActions = true,
+  channel_id
 }: MessageProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
@@ -51,12 +58,12 @@ export function Message({
       onMouseLeave={() => setIsHovered(false)}
     >
       <Avatar className="h-10 w-10">
-        <AvatarImage src={avatar} alt={username} />
-        <AvatarFallback>{username[0]}</AvatarFallback>
+        <AvatarImage src={avatar} alt={username || 'User'} />
+        <AvatarFallback>{(username || 'U')[0]}</AvatarFallback>
       </Avatar>
       <div className="flex-1 space-y-1">
         <div className="flex items-center">
-          <span className="font-semibold">{username}</span>
+          <span className="font-semibold">{username || 'Unknown User'}</span>
           <span className="ml-2 text-sm text-gray-500">{timestamp}</span>
           {isPinned && (
             <span className="ml-2 text-sm text-blue-500">📌 Pinned</span>
@@ -91,22 +98,64 @@ export function Message({
           ))}
           
           {isHovered && (
-            <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="ghost" 
+            <>
+              <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
+                <PopoverTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="lg"
+                    className="h-8 w-8 p-0 text-xl"
+                  >
+                    😀
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <EmojiPicker onEmojiClick={handleEmojiSelect} />
+                </PopoverContent>
+              </Popover>
+
+              {showActions && (
+                <Button
+                  variant="ghost"
                   size="lg"
-                  className="h-8 w-8 p-0 text-xl"
+                  className="h-8 w-8 p-0"
+                  onClick={() => onThreadOpen?.({
+                    id,
+                    avatar,
+                    username,
+                    timestamp,
+                    content,
+                    isPinned,
+                    reactions,
+                    message,
+                    channel_id
+                  })}
                 >
-                  😀
+                  <MessageCircle className="h-4 w-4 text-gray-500 hover:text-gray-700" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0">
-                <EmojiPicker onEmojiClick={handleEmojiSelect} />
-              </PopoverContent>
-            </Popover>
+              )}
+            </>
           )}
         </div>
+        
+        {message?.total_replies > 0 && (
+          <button
+            onClick={() => onThreadOpen?.({
+              id,
+              avatar,
+              username,
+              timestamp,
+              content,
+              isPinned,
+              reactions,
+              message,
+              channel_id
+            })}
+            className="mt-1 text-sm text-blue-500 hover:underline"
+          >
+            {message.total_replies} {message.total_replies === 1 ? 'reply' : 'replies'}
+          </button>
+        )}
       </div>
     </div>
   )
