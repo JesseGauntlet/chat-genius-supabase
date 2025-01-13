@@ -140,17 +140,7 @@ export function Message({
         
         {message?.total_replies > 0 && (
           <button
-            onClick={() => onThreadOpen?.({
-              id,
-              avatar,
-              username,
-              timestamp,
-              content,
-              isPinned,
-              reactions,
-              message,
-              channel_id
-            })}
+            onClick={() => onThreadOpen?.(message)}
             className="mt-1 text-sm text-blue-500 hover:underline"
           >
             {message.total_replies} {message.total_replies === 1 ? 'reply' : 'replies'}

@@ -46,7 +46,6 @@ interface DatabaseMessage {
     }>;
   };
   created_at: string;
-  total_replies: number;
   user: {
     id: string;
     name: string;
@@ -156,14 +155,12 @@ function ChatPageContent() {
           channel_id,
           message,
           created_at,
-          total_replies,
           user:user_id (
             id,
             name
           )
         `)
         .eq('channel_id', channelId)
-        .is('parent_id', null)
         .order('created_at', { ascending: true })
         .returns<DatabaseMessage[]>()
 
@@ -186,7 +183,7 @@ function ChatPageContent() {
             reactions,
             message: {
               ...message.message,
-              total_replies: message.total_replies || 0
+              total_replies: 0
             }
           }
         })
@@ -281,12 +278,7 @@ function ChatPageContent() {
       .channel('chat')
       .on(
         'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'chat',
-          filter: `channel_id=eq.${activeChat.id} AND parent_id=is.null`
-        },
+        { event: 'INSERT', schema: 'public', table: 'chat' },
         async (payload) => {
           if (payload.new.channel_id === activeChat.id) {
             const { data: user, error } = await supabase
@@ -302,7 +294,6 @@ function ChatPageContent() {
 
             setMessages(prevMessages => [...prevMessages, {
               id: payload.new.id,
-              channel_id: payload.new.channel_id,
               avatar: "/placeholder.svg",
               username: user.name || 'Unknown User',
               timestamp: new Date(payload.new.created_at).toLocaleTimeString([], { 
@@ -311,37 +302,9 @@ function ChatPageContent() {
               }),
               content: payload.new.message.text,
               reactions: [],
-              message: {
-                ...payload.new.message,
-                total_replies: 0
-              }
+              message: payload.new.message
             }])
           }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'chat',
-          filter: `channel_id=eq.${activeChat.id} AND parent_id=is.null`,
-        },
-        (payload) => {
-          // Update the reply count for the message
-          setMessages(prevMessages =>
-            prevMessages.map(msg =>
-              msg.id === payload.new.id
-                ? {
-                    ...msg,
-                    message: {
-                      ...msg.message,
-                      total_replies: payload.new.total_replies || 0
-                    }
-                  }
-                : msg
-            )
-          )
         }
       )
       .subscribe()

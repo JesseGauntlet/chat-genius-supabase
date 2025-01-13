@@ -100,15 +100,15 @@ export function ThreadPanel({ parentMessage, onClose }: ThreadPanelProps) {
   const sendReply = async () => {
     if (!replyText.trim()) return
     
-    // await supabase.from('chat').insert({
-    //   message: { text: replyText },
-    //   user_id: user?.id,
-    //   channel_id: parentMessage.channel_id,
-    //   parent_id: parentMessage.id
-    // })
+    await supabase.from('chat').insert({
+      message: { text: replyText },
+      user_id: user?.id,
+      channel_id: parentMessage.channel_id,
+      parent_id: parentMessage.id
+    })
     
     // Update parent message reply count
-    await supabase.rpc('increment_total_replies', {
+    await supabase.rpc('increment_reply_count', {
       message_id: parentMessage.id
     })
     
