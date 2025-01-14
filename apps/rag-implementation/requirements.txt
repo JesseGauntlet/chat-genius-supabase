@@ -1,4 +1,0 @@
-pinecone-client
-openai
-python-dotenv
-langsmith 
