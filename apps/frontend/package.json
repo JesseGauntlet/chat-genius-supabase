@@ -20,6 +20,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "emoji-picker-react": "latest",
+    "langchain": "^0.3.11",
     "lucide-react": "latest",
     "next": "15.1.4",
     "react": "^19.0.0",
