@@ -1,48 +1,21 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSupabase } from '@/components/providers/supabase-provider'
+import { useWorkspaces } from '@/components/providers/workspace-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Database } from '@/lib/database.types'
 
-type Workspace = Database['public']['Tables']['workspaces']['Row']
 type WorkspaceInsert = Database['public']['Tables']['workspaces']['Insert']
 type MemberInsert = Database['public']['Tables']['members']['Insert']
 
 export default function WorkspacesPage() {
   const { supabase, user } = useSupabase()
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
+  const { workspaces, refreshWorkspaces, isLoading } = useWorkspaces()
   const [newWorkspaceName, setNewWorkspaceName] = useState('')
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (user) {
-      fetchWorkspaces()
-    }
-  })
-
-  const fetchWorkspaces = async () => {
-    try {
-      // Get all workspaces
-      const { data: workspaces, error } = await supabase
-        .from('workspaces')
-        .select(`
-          id,
-          name,
-          created_at,
-          owner_id
-        `)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      setWorkspaces(workspaces)
-    } catch (error) {
-      console.error('Error fetching workspaces:', error)
-    }
-  }
 
   const handleCreateWorkspace = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,7 +51,7 @@ export default function WorkspacesPage() {
       if (memberError) throw memberError
 
       setNewWorkspaceName('')
-      fetchWorkspaces()
+      await refreshWorkspaces()
     } catch (error) {
       console.error('Error creating workspace:', error)
     } finally {
@@ -101,7 +74,7 @@ export default function WorkspacesPage() {
       if (error) throw error
 
       // Refresh the workspaces list after joining
-      fetchWorkspaces()
+      await refreshWorkspaces()
     } catch (error) {
       console.error('Error joining workspace:', error)
     }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { useSupabase } from "@/components/providers/supabase-provider"
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { ChevronsUpDown, Plus } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { useWorkspaces } from "@/components/providers/workspace-provider"
 
 type Channel = Database["public"]["Tables"]["channels"]["Row"]
 type Workspace = Database["public"]["Tables"]["workspaces"]["Row"]
@@ -27,10 +28,9 @@ interface SidebarProps {
 
 function SidebarContent({ onSelectChannel }: SidebarProps) {
   const { supabase, user } = useSupabase()
+  const { workspaces, refreshWorkspaces, isLoading } = useWorkspaces()
   const searchParams = useSearchParams()
   const workspaceId = searchParams.get("workspace")
-  const [workspace, setWorkspace] = useState<Workspace | null>(null)
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [channels, setChannels] = useState<Channel[]>([])
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
   const [newWorkspaceName, setNewWorkspaceName] = useState("")
@@ -38,47 +38,14 @@ function SidebarContent({ onSelectChannel }: SidebarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const router = useRouter()
 
+  // Get current workspace from workspaces list
+  const currentWorkspace = workspaces.find(w => w.id === workspaceId)
+
   useEffect(() => {
     if (workspaceId) {
-      fetchWorkspace()
       fetchChannels()
     }
   }, [workspaceId])
-
-  useEffect(() => {
-    if (user) {
-      fetchWorkspaces()
-    }
-  }, [user])
-
-  useEffect(() => {
-    const channelId = searchParams.get("channel")
-    if (channelId) {
-      setSelectedChannelId(channelId)
-    }
-  }, [searchParams])
-
-  const fetchWorkspaces = async () => {
-    if (!user) return
-    try {
-      const { data: workspaces, error } = await supabase
-        .from('workspaces')
-        .select(`
-          id,
-          name,
-          created_at,
-          owner_id
-        `)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      if (!workspaces) return
-      
-      setWorkspaces(workspaces)
-    } catch (error) {
-      console.error("Error fetching workspaces:", error)
-    }
-  }
 
   const handleCreateWorkspace = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -131,7 +98,7 @@ function SidebarContent({ onSelectChannel }: SidebarProps) {
 
       setNewWorkspaceName('')
       setDropdownOpen(false)
-      await fetchWorkspaces()
+      await refreshWorkspaces()
       router.push(`/chat?workspace=${workspace.id}`)
     } catch (error) {
       console.error("Error creating workspace:", error)
@@ -155,26 +122,10 @@ function SidebarContent({ onSelectChannel }: SidebarProps) {
       if (error) throw error
 
       // Refresh workspaces list and switch to the joined workspace
-      await fetchWorkspaces()
+      await refreshWorkspaces()
       router.push(`/chat?workspace=${workspaceId}`)
     } catch (error) {
       console.error("Error joining workspace:", error)
-    }
-  }
-
-  const fetchWorkspace = async () => {
-    if (!workspaceId) return
-    try {
-      const { data: workspace, error } = await supabase
-        .from("workspaces")
-        .select("*")
-        .eq("id", workspaceId)
-        .single()
-
-      if (error) throw error
-      setWorkspace(workspace)
-    } catch (error) {
-      console.error("Error fetching workspace:", error)
     }
   }
 
@@ -287,11 +238,11 @@ function SidebarContent({ onSelectChannel }: SidebarProps) {
             >
               <Avatar className="h-5 w-5">
                 <AvatarFallback>
-                  {workspace?.name?.[0]?.toUpperCase() || "W"}
+                  {currentWorkspace?.name?.[0]?.toUpperCase() || "W"}
                 </AvatarFallback>
               </Avatar>
               <span className="font-semibold text-sm flex-1 text-left truncate">
-                {workspace?.name || "Loading..."}
+                {currentWorkspace?.name || "Loading..."}
               </span>
               <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
             </Button>
