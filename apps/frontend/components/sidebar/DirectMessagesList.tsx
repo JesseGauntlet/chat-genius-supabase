@@ -1,7 +1,7 @@
 "use client"
 
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useSupabase } from '@/components/providers/supabase-provider'
-import { useEffect, useState } from 'react'
 import { usePresence } from '@/lib/hooks/use-presence'
 import { cn } from '@/lib/utils'
 import type { Database } from '@/lib/database.types'
@@ -37,43 +37,69 @@ export function DirectMessagesList({
   const { supabase, user } = useSupabase()
   const [dmUsers, setDmUsers] = useState<DMUser[]>([])
 
-  useEffect(() => {
+  const fetchDMUsers = useCallback(async () => {
     if (!user) return
 
-    const fetchDMUsers = async () => {
-      for (const channel of directChannels) {
-        const { data: members, error } = await supabase
-          .from('members')
-          .select(`
-            user:users (
-              id,
-              name
-            )
-          `)
-          .eq('channel_id', channel.id)
-          .neq('user_id', user.id)
-          .single()
+    const channelIds = directChannels.map(c => c.id)
+    if (channelIds.length === 0) return
 
-        if (!error && members) {
-          const memberWithUser = members as unknown as MemberWithUser
-          setDmUsers(prev => [
-            ...prev.filter(u => u.channelId !== channel.id),
-            {
-              id: memberWithUser.user.id,
-              name: memberWithUser.user.name,
-              channelId: channel.id,
-            }
-          ])
-        }
-      }
+    const { data: members, error } = await supabase
+      .from('members')
+      .select(`
+        channel_id,
+        user:users (
+          id,
+          name
+        )
+      `)
+      .in('channel_id', channelIds)
+      .neq('user_id', user.id)
+
+    if (!error && members) {
+      const newDmUsers = members.map((member: any) => ({
+        id: member.user.id,
+        name: member.user.name,
+        channelId: member.channel_id,
+      }))
+      setDmUsers(newDmUsers)
     }
+  }, [supabase, user, directChannels])
 
+  useEffect(() => {
     fetchDMUsers()
-  }, [directChannels, supabase, user])
+
+    // Subscribe to member changes
+    const channelIds = directChannels.map(c => c.id)
+    if (channelIds.length === 0) return
+
+    const subscription = supabase
+      .channel('members-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'members',
+          filter: `channel_id=in.(${channelIds.join(',')})`,
+        },
+        () => {
+          fetchDMUsers()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [supabase, directChannels, fetchDMUsers])
+
+  const sortedDmUsers = useMemo(() => {
+    return [...dmUsers].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+  }, [dmUsers])
 
   return (
     <div className="space-y-1">
-      {dmUsers.map((dmUser) => (
+      {sortedDmUsers.map((dmUser) => (
         <DMUserItem
           key={dmUser.channelId}
           user={dmUser}
@@ -88,7 +114,7 @@ export function DirectMessagesList({
   )
 }
 
-function DMUserItem({
+const DMUserItem = React.memo(function DMUserItem({
   user,
   isSelected,
   onSelect,
@@ -127,4 +153,4 @@ function DMUserItem({
       </div>
     </button>
   )
-} 
+}) 
