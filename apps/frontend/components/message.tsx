@@ -36,13 +36,13 @@ interface MessageProps {
   showReplyCount?: boolean
 }
 
-export function Message({ 
-  id, 
-  avatar, 
-  username, 
-  timestamp, 
-  content, 
-  isPinned, 
+export function Message({
+  id,
+  avatar,
+  username,
+  timestamp,
+  content,
+  isPinned,
   reactions = [],
   onAddReaction,
   message,
@@ -68,14 +68,27 @@ export function Message({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Avatar className="h-10 w-10 shrink-0">
+      <Avatar className="h-10 w-10">
         <AvatarImage src={avatar} alt={username || 'User'} />
         <AvatarFallback>{(username || 'U')[0]}</AvatarFallback>
       </Avatar>
+
       <div className="flex-1 space-y-1 overflow-hidden">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm">{username || 'Unknown User'}</span>
           <span className="text-xs text-muted-foreground">{timestamp}</span>
+          {message.total_replies > 0 && (
+            <span className="text-xs text-muted-foreground hover:text-foreground cursor-pointer" onClick={() => onThreadOpen?.({
+              id,
+              avatar,
+              username,
+              timestamp,
+              content,
+              message
+            })}>
+              • {message.total_replies === 1 ? "1 reply" : `${message.total_replies} replies`}
+            </span>
+          )}
           {isPinned && (
             <div className="flex items-center gap-1 text-xs text-blue-500">
               <Pin className="h-3 w-3" />
@@ -83,17 +96,20 @@ export function Message({
             </div>
           )}
         </div>
+
         <div className="space-y-2">
-          <p className="text-sm leading-normal break-words text-foreground">{content}</p>
-          {message.attachments?.map((attachment, index) => (
-            <div 
+          <p className="text-sm leading-normal break-words text-foreground">
+            {content}
+          </p>
+          {message?.attachments?.map((attachment, index) => (
+            <div
               key={index}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <FileIcon className="h-4 w-4" />
-              <a 
-                href={attachment.url} 
-                target="_blank" 
+              <a
+                href={attachment.url}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="hover:underline"
               >
@@ -102,6 +118,7 @@ export function Message({
             </div>
           ))}
         </div>
+
         {(reactions.length > 0 || showActions) && (
           <div className="flex items-center gap-2 pt-0.5">
             {reactions.map(({ emoji, count }, index) => (
@@ -117,22 +134,28 @@ export function Message({
           </div>
         )}
       </div>
-      {showActions && isHovered && (
-        <div className="absolute right-4 top-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+
+      {showActions && (
+        <div 
+          className={cn(
+            "absolute right-4 top-2 flex items-center gap-0.5 transition-opacity",
+            isHovered ? "opacity-100" : "opacity-0"
+          )}
+        >
           <Popover>
             <PopoverTrigger asChild>
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="h-8 w-8 hover:bg-accent/20"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent/20"
               >
                 <Smile className="h-4 w-4" />
                 <span className="sr-only">Add reaction</span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent 
-              side="top" 
-              align="end" 
+            <PopoverContent
+              side="top"
+              align="end"
               className="w-80 p-0"
             >
               <EmojiPicker
@@ -141,12 +164,20 @@ export function Message({
               />
             </PopoverContent>
           </Popover>
+
           {showReplyCount && (
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 hover:bg-accent/20"
-              onClick={() => onThreadOpen?.(message)}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent/20"
+              onClick={() => onThreadOpen?.({
+                id,
+                avatar,
+                username,
+                timestamp,
+                content,
+                message
+              })}
             >
               <div className="relative">
                 <MessageCircle className="h-4 w-4" />
@@ -159,12 +190,13 @@ export function Message({
               <span className="sr-only">Reply in thread</span>
             </Button>
           )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
-                size="icon" 
-                variant="ghost" 
-                className="h-8 w-8 hover:bg-accent/20"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent/20"
               >
                 <MoreVertical className="h-4 w-4" />
                 <span className="sr-only">More options</span>

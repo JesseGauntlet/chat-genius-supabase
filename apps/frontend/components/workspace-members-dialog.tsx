@@ -88,7 +88,7 @@ export function WorkspaceMembersDialog({ workspaceId, onSelectMember, memberCoun
         <Button
           variant="ghost"
           size="icon"
-          className="hover:bg-purple-300"
+          className="hover:bg-purple-300/20"
         >
           <div className="flex items-center space-x-1">
             <MembersIcon className="h-4 w-4" />

@@ -44,25 +44,22 @@ export function StatusMenu() {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="link"
+          variant="ghost"
           role="combobox"
           aria-expanded={open}
-          className="w-fit justify-start p-0 text-xs font-normal text-muted-foreground hover:text-foreground"
+          className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full p-0 hover:bg-accent/50"
         >
-          <span className="flex items-center gap-2">
-            <span className={cn(
-              "h-2 w-2 rounded-full",
-              value === "active" && "bg-green-500",
-              value === "away" && "bg-yellow-500",
-              value === "busy" && "bg-red-500",
-              value === "offline" && "bg-gray-500",
-            )} />
-            {statuses.find((status) => status.value === value)?.label}
-          </span>
-          <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+          <span className={cn(
+            "h-2.5 w-2.5 rounded-full",
+            value === "active" && "bg-green-500",
+            value === "away" && "bg-yellow-500",
+            value === "busy" && "bg-red-500",
+            value === "offline" && "bg-gray-500",
+          )} />
+          <span className="sr-only">Change status</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0">
+      <PopoverContent className="w-[200px] p-0" side="right" align="start">
         <Command>
           <CommandInput placeholder="Change status..." />
           <CommandEmpty>No status found.</CommandEmpty>
@@ -76,13 +73,7 @@ export function StatusMenu() {
                   setOpen(false)
                 }}
               >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    value === status.value ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                <span className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1">
                   <span className={cn(
                     "h-2 w-2 rounded-full",
                     status.value === "active" && "bg-green-500",
@@ -91,7 +82,13 @@ export function StatusMenu() {
                     status.value === "offline" && "bg-gray-500",
                   )} />
                   {status.label}
-                </span>
+                </div>
+                <Check
+                  className={cn(
+                    "ml-auto h-4 w-4",
+                    value === status.value ? "opacity-100" : "opacity-0"
+                  )}
+                />
               </CommandItem>
             ))}
           </CommandGroup>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Message } from "@/components/message"
 import { MessageInput } from "@/components/message-input"
@@ -57,13 +57,55 @@ function ChatPageContent() {
   const { supabase, user } = useSupabase()
   const searchParams = useSearchParams()
   const workspaceId = searchParams.get('workspace')
+  const channelId = searchParams.get('channel')
   const [activeChat, setActiveChat] = useState<{ type: 'channel' | 'dm', id: string | null }>({ type: 'channel', id: null })
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null)
   const [memberCount, setMemberCount] = useState(0)
   const [activeThread, setActiveThread] = useState(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
 
+  // Handle URL channel parameter
+  useEffect(() => {
+    if (channelId) {
+      fetchChannel(channelId)
+    } else {
+      // Reset active chat and channel when there's no channel in URL
+      setActiveChat({ type: 'channel', id: null })
+      setActiveChannel(null)
+    }
+  }, [channelId])
+
+  const fetchChannel = async (channelId: string) => {
+    try {
+      const { data: channel, error } = await supabase
+        .from('channels')
+        .select('*')
+        .eq('id', channelId)
+        .single()
+
+      if (error) throw error
+      if (channel) {
+        setActiveChat({ type: 'channel', id: channel.id })
+        setActiveChannel(channel)
+      }
+    } catch (error) {
+      console.error('Error fetching channel:', error)
+      // Reset active chat and channel on error
+      setActiveChat({ type: 'channel', id: null })
+      setActiveChannel(null)
+    }
+  }
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom()
+    }
+  }, [messages])
 
   const fetchChannels = async () => {
     if (!workspaceId) return
@@ -398,40 +440,57 @@ function ChatPageContent() {
         onSelectMember={handleSelectMember} 
       />
       <main className="flex-1 flex flex-col overflow-hidden bg-background">
-        <Header 
-          chatName={activeChat.type === 'channel' 
-            ? (activeChannel?.name || 'Unknown Channel')
-            : 'Direct Message'
-          }
-          workspaceId={workspaceId}
-          onSelectMember={handleSelectMember}
-          memberCount={memberCount}
-        />
-        <div className="flex-1 overflow-y-auto">
-          <div className="flex flex-col gap-2 p-4">
-            {messages.map((message) => (
-              <Message 
-                key={message.id} 
-                {...message} 
-                onAddReaction={handleAddReaction}
-                onThreadOpen={setActiveThread}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="p-4 border-t">
-          <div className="max-w-[1200px] mx-auto">
-            <div className="flex items-center gap-2">
-              <FileUpload 
-                channelId={activeChannel?.id || ''}
-                onUploadComplete={handleFileUpload} 
-              />
-              <div className="flex-1">
-                <MessageInput onSendMessage={handleSendMessage} />
+        {activeChat.id ? (
+          <>
+            <Header 
+              chatName={activeChat.type === 'channel' 
+                ? (activeChannel?.name || 'Unknown Channel')
+                : 'Direct Message'
+              }
+              workspaceId={workspaceId}
+              onSelectMember={handleSelectMember}
+              memberCount={memberCount}
+            />
+            <div className="flex-1 overflow-y-auto">
+              <div className="flex flex-col gap-2 p-4">
+                {messages.map((message) => (
+                  <Message 
+                    key={message.id} 
+                    {...message} 
+                    onAddReaction={handleAddReaction}
+                    onThreadOpen={setActiveThread}
+                  />
+                ))}
+                <div ref={messagesEndRef} />
               </div>
             </div>
+            <div className="p-4 border-t">
+              <div className="max-w-[1200px] mx-auto">
+                <div className="flex items-center gap-2">
+                  <FileUpload 
+                    channelId={activeChannel?.id || ''}
+                    onUploadComplete={handleFileUpload} 
+                  />
+                  <div className="flex-1">
+                    <MessageInput onSendMessage={handleSendMessage} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col h-full">
+            <Header 
+              chatName="No channel selected"
+              workspaceId={workspaceId}
+              onSelectMember={handleSelectMember}
+              memberCount={memberCount}
+            />
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-muted-foreground">Select a channel to start chatting</p>
+            </div>
           </div>
-        </div>
+        )}
       </main>
       {activeThread && (
         <ThreadPanel

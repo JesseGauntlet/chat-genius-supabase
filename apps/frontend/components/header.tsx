@@ -32,7 +32,7 @@ export function Header({ chatName, workspaceId, onSelectMember, memberCount }: H
             variant="ghost"
             size="icon"
             onClick={() => setIsSearchOpen(true)}
-            className="hover:bg-accent"
+            className="hover:bg-purple-300/20"
           >
             <Search className="h-4 w-4" />
             <span className="sr-only">Search</span>
