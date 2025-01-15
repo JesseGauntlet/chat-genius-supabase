@@ -5,7 +5,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import EmojiPicker from 'emoji-picker-react'
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
-import { FileIcon, MessageCircle } from "lucide-react"
+import { FileIcon, MessageCircle, MoreVertical, Pin, Smile } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { cn } from '@/lib/utils'
 
 interface MessageProps {
   id: string
@@ -53,96 +60,130 @@ export function Message({
 
   return (
     <div
-      className="group flex items-start space-x-3 p-4 hover:bg-gray-50"
+      className={cn(
+        "group relative flex items-start gap-4 px-4 py-3 transition-colors",
+        "hover:bg-accent hover:bg-opacity-10",
+        isPinned && "bg-accent/5"
+      )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Avatar className="h-10 w-10">
+      <Avatar className="h-10 w-10 shrink-0">
         <AvatarImage src={avatar} alt={username || 'User'} />
         <AvatarFallback>{(username || 'U')[0]}</AvatarFallback>
       </Avatar>
-      <div className="flex-1 space-y-1">
-        <div className="flex items-center">
-          <span className="font-semibold">{username || 'Unknown User'}</span>
-          <span className="ml-2 text-sm text-gray-500">{timestamp}</span>
+      <div className="flex-1 space-y-1 overflow-hidden">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-sm">{username || 'Unknown User'}</span>
+          <span className="text-xs text-muted-foreground">{timestamp}</span>
           {isPinned && (
-            <span className="ml-2 text-sm text-blue-500">📌 Pinned</span>
+            <div className="flex items-center gap-1 text-xs text-blue-500">
+              <Pin className="h-3 w-3" />
+              <span>Pinned</span>
+            </div>
           )}
         </div>
-        <p className="text-gray-900">{content}</p>
-        
-        {message?.attachments?.map((attachment, index) => (
-          <div key={index} className="mt-2">
-            <a
-              href={attachment.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center space-x-2 text-sm text-blue-600 hover:underline"
+        <div className="space-y-2">
+          <p className="text-sm leading-normal break-words text-foreground">{content}</p>
+          {message.attachments?.map((attachment, index) => (
+            <div 
+              key={index}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <FileIcon className="h-4 w-4" />
-              <span>{attachment.name}</span>
-            </a>
-          </div>
-        ))}
-        
-        <div className="flex items-center gap-2 mt-2">
-          {reactions.map(({ emoji, count }, index) => (
-            <button
-              key={index}
-              onClick={() => onAddReaction(id, emoji)}
-              className="flex items-center space-x-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full px-3 py-1"
-            >
-              <span>{emoji}</span>
-              <span>{count}</span>
-            </button>
+              <a 
+                href={attachment.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hover:underline"
+              >
+                {attachment.name}
+              </a>
+            </div>
           ))}
-          
-          {isHovered && (
-            <>
-              <Popover open={showEmojiPicker} onOpenChange={setShowEmojiPicker}>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="lg"
-                    className="h-8 w-8 p-0 text-xl"
-                  >
-                    😀
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <EmojiPicker onEmojiClick={handleEmojiSelect} />
-                </PopoverContent>
-              </Popover>
-
-              {showActions && (
-                <Button
-                  variant="ghost"
-                  size="lg"
-                  className="h-8 w-8 p-0"
-                  onClick={() => onThreadOpen?.({
-                    id,
-                    avatar,
-                    username,
-                    timestamp,
-                    content,
-                    isPinned,
-                    reactions,
-                    message
-                  })}
-                >
-                  <MessageCircle className="h-4 w-4 text-gray-500 hover:text-gray-700" />
-                </Button>
-              )}
-            </>
-          )}
         </div>
-        
-        {showReplyCount && message.total_replies > 0 && (
-          <div className="text-sm text-gray-500">
-            {message.total_replies} replies
+        {(reactions.length > 0 || showActions) && (
+          <div className="flex items-center gap-2 pt-0.5">
+            {reactions.map(({ emoji, count }, index) => (
+              <button
+                key={`${emoji}-${index}`}
+                onClick={() => onAddReaction(id, emoji)}
+                className="flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs hover:bg-accent/20 transition-colors"
+              >
+                <span>{emoji}</span>
+                <span className="text-muted-foreground">{count}</span>
+              </button>
+            ))}
           </div>
         )}
       </div>
+      {showActions && isHovered && (
+        <div className="absolute right-4 top-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-8 w-8 hover:bg-accent/20"
+              >
+                <Smile className="h-4 w-4" />
+                <span className="sr-only">Add reaction</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent 
+              side="top" 
+              align="end" 
+              className="w-80 p-0"
+            >
+              <EmojiPicker
+                onEmojiClick={handleEmojiSelect}
+                width="100%"
+              />
+            </PopoverContent>
+          </Popover>
+          {showReplyCount && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 hover:bg-accent/20"
+              onClick={() => onThreadOpen?.(message)}
+            >
+              <div className="relative">
+                <MessageCircle className="h-4 w-4" />
+                {message.total_replies > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-3 min-w-[0.75rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] text-primary-foreground">
+                    {message.total_replies}
+                  </span>
+                )}
+              </div>
+              <span className="sr-only">Reply in thread</span>
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="h-8 w-8 hover:bg-accent/20"
+              >
+                <MoreVertical className="h-4 w-4" />
+                <span className="sr-only">More options</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>
+                Pin message
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                Copy text
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive">
+                Delete message
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   )
 } 

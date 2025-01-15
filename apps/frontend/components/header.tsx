@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Button } from './ui/button'
 import { WorkspaceMembersDialog } from './workspace-members-dialog'
 import { SearchPanel } from './search-panel'
+import { Separator } from './ui/separator'
 
 interface HeaderProps {
   chatName: string
@@ -18,16 +19,23 @@ export function Header({ chatName, workspaceId, onSelectMember, memberCount }: H
 
   return (
     <>
-      <header className="h-14 border-b bg-purple-200 flex items-center justify-between px-4">
-        <h2 className="text-lg font-semibold">{chatName}</h2>
+      <header className="h-14 border-b bg-background flex items-center justify-between px-6 shadow-sm">
+        <div className="flex items-center gap-4">
+          <h2 className="text-lg font-semibold tracking-tight">{chatName}</h2>
+          <Separator orientation="vertical" className="h-6" />
+          <div className="text-sm text-muted-foreground">
+            {memberCount} {memberCount === 1 ? 'member' : 'members'}
+          </div>
+        </div>
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsSearchOpen(true)}
-            className="hover:bg-purple-300"
+            className="hover:bg-accent"
           >
             <Search className="h-4 w-4" />
+            <span className="sr-only">Search</span>
           </Button>
           <WorkspaceMembersDialog
             workspaceId={workspaceId}

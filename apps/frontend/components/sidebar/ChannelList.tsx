@@ -1,8 +1,10 @@
 "use client"
 
 import { Button } from "../ui/button"
-import type { Channel } from "@/lib/types"
-import { cn } from "@/lib/utils" // or your own utility for conditionally combining classes
+import type { Database } from "@/lib/database.types"
+import { cn } from "@/lib/utils"
+
+type Channel = Database["public"]["Tables"]["channels"]["Row"]
 
 interface ChannelListProps {
   channels: Channel[]

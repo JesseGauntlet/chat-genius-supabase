@@ -394,11 +394,10 @@ function ChatPageContent() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar 
-        // channels={channels}
         onSelectChannel={handleSelectChannel} 
         onSelectMember={handleSelectMember} 
       />
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden bg-background">
         <Header 
           chatName={activeChat.type === 'channel' 
             ? (activeChannel?.name || 'Unknown Channel')
@@ -408,23 +407,29 @@ function ChatPageContent() {
           onSelectMember={handleSelectMember}
           memberCount={memberCount}
         />
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          {messages.map((message) => (
-            <Message 
-              key={message.id} 
-              {...message} 
-              onAddReaction={handleAddReaction}
-              onThreadOpen={setActiveThread}
-            />
-          ))}
+        <div className="flex-1 overflow-y-auto">
+          <div className="flex flex-col gap-2 p-4">
+            {messages.map((message) => (
+              <Message 
+                key={message.id} 
+                {...message} 
+                onAddReaction={handleAddReaction}
+                onThreadOpen={setActiveThread}
+              />
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-2 p-4 border-t">
-          <FileUpload 
-            channelId={activeChannel?.id || ''}
-            onUploadComplete={handleFileUpload} 
-          />
-          <div className="flex-1">
-            <MessageInput onSendMessage={handleSendMessage} />
+        <div className="p-4 border-t">
+          <div className="max-w-[1200px] mx-auto">
+            <div className="flex items-center gap-2">
+              <FileUpload 
+                channelId={activeChannel?.id || ''}
+                onUploadComplete={handleFileUpload} 
+              />
+              <div className="flex-1">
+                <MessageInput onSendMessage={handleSendMessage} />
+              </div>
+            </div>
           </div>
         </div>
       </main>
