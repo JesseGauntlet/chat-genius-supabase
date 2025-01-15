@@ -1,99 +1,88 @@
 'use client'
 
-import * as React from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { useState } from 'react'
+import { usePresence, Status } from '@/lib/hooks/use-presence'
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-
-const statuses = [
-  {
-    value: "active",
-    label: "Active",
-  },
-  {
-    value: "away",
-    label: "Away",
-  },
-  {
-    value: "busy",
-    label: "Do not disturb",
-  },
-  {
-    value: "offline",
-    label: "Offline",
-  },
-]
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { Check } from 'lucide-react'
 
 export function StatusMenu() {
-  const [open, setOpen] = React.useState(false)
-  const [value, setValue] = React.useState("active")
+  const { status, customStatus, updateStatus, updateCustomStatus } = usePresence()
+  const [newCustomStatus, setNewCustomStatus] = useState(customStatus)
+  const [isEditing, setIsEditing] = useState(false)
+
+  const handleCustomStatusSave = () => {
+    updateCustomStatus(newCustomStatus)
+    setIsEditing(false)
+  }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          role="combobox"
-          aria-expanded={open}
-          className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full p-0 hover:bg-accent/50"
-        >
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-background">
           <span className={cn(
-            "h-2.5 w-2.5 rounded-full",
-            value === "active" && "bg-green-500",
-            value === "away" && "bg-yellow-500",
-            value === "busy" && "bg-red-500",
-            value === "offline" && "bg-gray-500",
+            "absolute inset-0 rounded-full",
+            status === 'online' && 'bg-green-500',
+            status === 'away' && 'bg-yellow-500',
+            status === 'offline' && 'bg-gray-500'
           )} />
-          <span className="sr-only">Change status</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0" side="right" align="start">
-        <Command>
-          <CommandInput placeholder="Change status..." />
-          <CommandEmpty>No status found.</CommandEmpty>
-          <CommandGroup>
-            {statuses.map((status) => (
-              <CommandItem
-                key={status.value}
-                value={status.value}
-                onSelect={(currentValue) => {
-                  setValue(currentValue)
-                  setOpen(false)
-                }}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[200px]">
+        <div className="p-2">
+          {isEditing ? (
+            <div className="flex gap-2">
+              <Input
+                value={newCustomStatus}
+                onChange={(e) => setNewCustomStatus(e.target.value)}
+                placeholder="What's your status?"
+                className="h-8"
+              />
+              <Button
+                size="sm"
+                className="h-8"
+                onClick={handleCustomStatusSave}
               >
-                <div className="flex items-center gap-2 flex-1">
-                  <span className={cn(
-                    "h-2 w-2 rounded-full",
-                    status.value === "active" && "bg-green-500",
-                    status.value === "away" && "bg-yellow-500",
-                    status.value === "busy" && "bg-red-500",
-                    status.value === "offline" && "bg-gray-500",
-                  )} />
-                  {status.label}
-                </div>
-                <Check
-                  className={cn(
-                    "ml-auto h-4 w-4",
-                    value === status.value ? "opacity-100" : "opacity-0"
-                  )}
-                />
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </Command>
-      </PopoverContent>
-    </Popover>
+                <Check className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div
+              className="text-sm px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+              onClick={() => setIsEditing(true)}
+            >
+              {customStatus || "Set a status..."}
+            </div>
+          )}
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => updateStatus('online')}>
+          <div className="flex items-center">
+            <div className="h-2 w-2 rounded-full bg-green-500 mr-2" />
+            Online
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => updateStatus('away')}>
+          <div className="flex items-center">
+            <div className="h-2 w-2 rounded-full bg-yellow-500 mr-2" />
+            Away
+          </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => updateStatus('offline')}>
+          <div className="flex items-center">
+            <div className="h-2 w-2 rounded-full bg-gray-500 mr-2" />
+            Offline
+          </div>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 } 

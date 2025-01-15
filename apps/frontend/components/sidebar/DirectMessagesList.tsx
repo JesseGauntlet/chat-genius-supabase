@@ -1,12 +1,14 @@
 "use client"
 
-import { Button } from "../ui/button"
-import { Avatar, AvatarFallback } from "../ui/avatar"
-import type { Database } from "@/lib/database.types"
-import { useSupabase } from "@/components/providers/supabase-provider"
-import { useEffect, useState } from "react"
+import { useSupabase } from '@/components/providers/supabase-provider'
+import { useEffect, useState } from 'react'
+import { usePresence } from '@/lib/hooks/use-presence'
+import { cn } from '@/lib/utils'
+import type { Database } from '@/lib/database.types'
 
-type Channel = Database["public"]["Tables"]["channels"]["Row"]
+type Channel = Database['public']['Tables']['channels']['Row']
+type User = Database['public']['Tables']['users']['Row']
+type Member = Database['public']['Tables']['members']['Row']
 
 interface DirectMessagesListProps {
   directChannels: Channel[]
@@ -14,116 +16,115 @@ interface DirectMessagesListProps {
   onSelectChannel: (channel: Channel) => void
 }
 
+interface DMUser {
+  id: string
+  name: string | null
+  channelId: string
+}
+
+interface MemberWithUser {
+  user: {
+    id: string
+    name: string | null
+  }
+}
+
 export function DirectMessagesList({
   directChannels,
   selectedChannelId,
   onSelectChannel,
 }: DirectMessagesListProps) {
-  const { user, supabase } = useSupabase()
-  const [isUpdatingMetadata, setIsUpdatingMetadata] = useState(false)
-  const currentUserName = user?.user_metadata?.name
+  const { supabase, user } = useSupabase()
+  const [dmUsers, setDmUsers] = useState<DMUser[]>([])
 
   useEffect(() => {
-    const updateUserMetadata = async () => {
-      if (user && !currentUserName && !isUpdatingMetadata) {
-        try {
-          setIsUpdatingMetadata(true)
-          console.warn('No Metadata found, fetching from users table')
-          // Fetch the user's name from the users table
-          const { data, error } = await supabase
-            .from('users')
-            .select('name')
-            .eq('id', user.id)
-            .single()
+    if (!user) return
 
-          if (error) throw error
+    const fetchDMUsers = async () => {
+      for (const channel of directChannels) {
+        const { data: members, error } = await supabase
+          .from('members')
+          .select(`
+            user:users (
+              id,
+              name
+            )
+          `)
+          .eq('channel_id', channel.id)
+          .neq('user_id', user.id)
+          .single()
 
-          if (data?.name) {
-            // Update the user's metadata
-            const { error: updateError } = await supabase.auth.updateUser({
-              data: { name: data.name }
-            })
-
-            if (updateError) throw updateError
-          }
-        } catch (error) {
-          console.error('Error updating user metadata:', error)
-        } finally {
-          setIsUpdatingMetadata(false)
+        if (!error && members) {
+          const memberWithUser = members as unknown as MemberWithUser
+          setDmUsers(prev => [
+            ...prev.filter(u => u.channelId !== channel.id),
+            {
+              id: memberWithUser.user.id,
+              name: memberWithUser.user.name,
+              channelId: channel.id,
+            }
+          ])
         }
       }
     }
 
-    updateUserMetadata()
-  }, [user, currentUserName, supabase, isUpdatingMetadata])
-
-  if (directChannels.length === 0) {
-    return <p className="text-sm text-gray-500">No direct messages</p>
-  }
-
-  const getDisplayName = (channelName: string) => {
-    if (!currentUserName && !isUpdatingMetadata) {
-      console.warn('Fallback: No current user name available', {
-        channelName,
-        currentUserName,
-        userId: user?.id
-      })
-      return channelName
-    }
-    
-    // If we're still updating metadata, show a loading state
-    if (isUpdatingMetadata) {
-      return channelName
-    }
-    
-    const names = channelName.split(',').map(name => name.trim())
-    
-    // If there are exactly 2 names and one is the current user
-    if (names.length === 2) {
-      const otherName = names.find(name => name !== currentUserName)
-      if (!otherName) {
-        console.warn('Fallback: Could not find other user name', {
-          channelName,
-          names,
-          currentUserName
-        })
-      }
-      return otherName || names[0]
-    }
-    
-    // Log why we're using the fallback
-    console.warn('Fallback: Unexpected channel name format', {
-      channelName,
-      namesCount: names.length,
-      names,
-      currentUserName
-    })
-    return channelName
-  }
+    fetchDMUsers()
+  }, [directChannels, supabase, user])
 
   return (
     <div className="space-y-1">
-      {directChannels.map((channel) => (
-        <Button
-          key={channel.id}
-          variant="ghost"
-          className={`w-full justify-start ${
-            selectedChannelId === channel.id
-              ? "bg-purple-200 hover:bg-purple-200"
-              : "hover:bg-purple-200"
-          }`}
-          onClick={() => onSelectChannel(channel)}
-        >
-          <div className="flex items-center space-x-2">
-            <Avatar className="h-5 w-5">
-              <AvatarFallback className="text-xs">
-                {getDisplayName(channel.name).charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <span>{getDisplayName(channel.name)}</span>
-          </div>
-        </Button>
+      {dmUsers.map((dmUser) => (
+        <DMUserItem
+          key={dmUser.channelId}
+          user={dmUser}
+          isSelected={selectedChannelId === dmUser.channelId}
+          onSelect={() => {
+            const channel = directChannels.find(c => c.id === dmUser.channelId)
+            if (channel) onSelectChannel(channel)
+          }}
+        />
       ))}
     </div>
+  )
+}
+
+function DMUserItem({
+  user,
+  isSelected,
+  onSelect,
+}: {
+  user: DMUser
+  isSelected: boolean
+  onSelect: () => void
+}) {
+  const { status, customStatus } = usePresence(user.id)
+
+  return (
+    <button
+      className={cn(
+        "w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors",
+        isSelected ? "bg-accent text-accent-foreground" : "hover:bg-accent/50 text-muted-foreground"
+      )}
+      onClick={onSelect}
+    >
+      <div className="relative">
+        <div className="w-2 h-2">
+          <span className={cn(
+            "absolute inset-0 rounded-full",
+            status === 'online' && 'bg-green-500',
+            status === 'away' && 'bg-yellow-500',
+            status === 'offline' && 'bg-gray-500'
+          )} />
+        </div>
+      </div>
+      <div className="flex-1 text-left">
+        <div className="font-medium">{user.name || 'Unknown User'}</div>
+        {customStatus && (
+          <div className="text-xs text-muted-foreground truncate">
+            {customStatus}
+          </div>
+        )}
+      </div>
+    </button>
   )
 } 
