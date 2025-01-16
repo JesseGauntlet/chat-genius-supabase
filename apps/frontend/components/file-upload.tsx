@@ -42,12 +42,14 @@ export function FileUpload({ channelId, onUploadComplete }: FileUploadProps) {
 
       if (error) throw error
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      // Get signed URL instead of public URL
+      const { data: signedData } = await supabase.storage
         .from('channel-files')
-        .getPublicUrl(data.path)
+        .createSignedUrl(data.path, 60 * 60 * 24 * 7) // 7 days expiry
 
-      onUploadComplete(publicUrl, file.name)
+      if (!signedData) throw new Error('Failed to get signed URL')
+
+      onUploadComplete(signedData.signedUrl, file.name)
     } catch (error) {
       console.error('Error uploading file:', error)
     } finally {

@@ -6,6 +6,7 @@ import EmojiPicker from 'emoji-picker-react'
 import { Button } from "./ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { FileIcon, MessageCircle, MoreVertical, Pin, Smile } from "lucide-react"
+import { useSupabase } from "@/components/providers/supabase-provider"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,10 +53,37 @@ export function Message({
 }: MessageProps) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const { supabase } = useSupabase()
 
   const handleEmojiSelect = (emojiData: { emoji: string }) => {
     onAddReaction(id, emojiData.emoji)
     setShowEmojiPicker(false)
+  }
+
+  const handleAttachmentClick = async (attachment: { url: string, name: string }) => {
+    try {
+      // Extract the file path from the URL
+      const url = new URL(attachment.url)
+      const path = url.pathname.split('/channel-files/')[1]
+      
+      if (!path) {
+        console.error('Invalid file path')
+        return
+      }
+
+      // Get a fresh signed URL
+      const { data, error } = await supabase.storage
+        .from('channel-files')
+        .createSignedUrl(path, 60 * 60) // 1 hour expiry
+
+      if (error) throw error
+      if (!data) throw new Error('Failed to get signed URL')
+
+      // Open the signed URL in a new tab
+      window.open(data.signedUrl, '_blank')
+    } catch (error) {
+      console.error('Error getting signed URL:', error)
+    }
   }
 
   return (
@@ -77,7 +105,7 @@ export function Message({
         <div className="flex items-center gap-2">
           <span className="font-semibold text-sm">{username || 'Unknown User'}</span>
           <span className="text-xs text-muted-foreground">{timestamp}</span>
-          {message.total_replies > 0 && (
+          {message.total_replies > 0 && showReplyCount && (
             <span className="text-xs text-muted-foreground hover:text-foreground cursor-pointer" onClick={() => onThreadOpen?.({
               id,
               avatar,
@@ -107,14 +135,12 @@ export function Message({
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <FileIcon className="h-4 w-4" />
-              <a
-                href={attachment.url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => handleAttachmentClick(attachment)}
                 className="hover:underline"
               >
                 {attachment.name}
-              </a>
+              </button>
             </div>
           ))}
         </div>
