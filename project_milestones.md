@@ -35,21 +35,21 @@
 - [x] Implement channel creation within workspaces
 
 ## 5. Real-Time Messaging
-- [ ] Implement real-time chat using Supabase Realtime
+- [x] Implement real-time chat using Supabase Realtime
   - [x] Channel-based conversations
   - [x] Direct messages (DMs)
-  - [ ] Threaded replies
+  - [x] Threaded replies
 
 ## 6. Search
-- [ ] Implement basic search using Postgres Full-Text Search in Supabase
+- [x] Implement basic search using Postgres Full-Text Search in Supabase (*Using RAG for more advanced search, no default basic seaerch)
 
 ## 7. File Sharing
 - [x] Set up Supabase Storage for file uploads and downloads
 - [x] Implement file sharing within channels and DMs
 
 ## 8. User Presence & Status
-- [ ] Implement real-time presence indicators (online, offline, away)
-- [ ] Allow users to set custom status messages
+- [x] Implement real-time presence indicators (online, offline, away) *TODO: Indicator currently manually set only
+- [x] Allow users to set custom status messages
 - [ ] Implement typing indicators
 
 ## 9. Emoji Reactions
