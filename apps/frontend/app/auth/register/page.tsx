@@ -32,74 +32,22 @@ export default function RegisterPage() {
         password,
         options: {
           data: {
-            full_name: name,
+            name: name,
           },
         },
       })
 
-      if (authError) throw authError
+      if (authError) {
+        // Show specific error for existing user
+        if (authError.message.includes('already exists')) {
+          setError('An account with this email already exists. Please sign in instead.')
+        } else {
+          setError(authError.message)
+        }
+        return
+      }
 
       if (authData.user) {
-        // 2. Create default workspace
-        const { data: workspace, error: workspaceError } = await supabase
-          .from('workspaces')
-          .insert([
-            {
-              name: `${name}'s Workspace`,
-              owner_id: authData.user.id,
-            },
-          ])
-          .select()
-          .single()
-
-        if (workspaceError) throw workspaceError
-
-        // 3. Add user as admin to workspace
-        const { error: memberError } = await supabase
-          .from('members')
-          .insert([
-            {
-              user_id: authData.user.id,
-              workspace_id: workspace.id,
-              role: 'admin',
-            },
-          ])
-
-        if (memberError) throw memberError
-
-        // 4. Create default channels
-        const defaultChannels = ['general', 'random']
-        for (const channelName of defaultChannels) {
-          // Create channel
-          const { data: channel, error: channelError } = await supabase
-            .from('channels')
-            .insert([
-              {
-                name: channelName,
-                workspace_id: workspace.id,
-                is_private: false,
-              },
-            ])
-            .select()
-            .single()
-
-          if (channelError) throw channelError
-
-          // Add user as member of channel
-          const { error: channelMemberError } = await supabase
-            .from('members')
-            .insert([
-              {
-                user_id: authData.user.id,
-                workspace_id: workspace.id,
-                channel_id: channel.id,
-                role: 'admin',
-              },
-            ])
-
-          if (channelMemberError) throw channelMemberError
-        }
-
         router.push('/')
       }
     } catch (error) {

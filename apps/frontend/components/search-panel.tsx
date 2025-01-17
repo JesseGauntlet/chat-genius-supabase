@@ -25,14 +25,17 @@ interface SearchPanelProps {
 export function SearchPanel({ isOpen, onClose }: SearchPanelProps) {
   const [query, setQuery] = useState('')
   const [searchResponse, setSearchResponse] = useState<SearchResponse | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   const handleSearch = async () => {
     if (!query.trim()) return
 
-    setIsLoading(true)
+    setIsSearching(true)
     setError(null)
+    setSuccess(null)
     
     try {
       const response = await fetch('/api/chat-history', {
@@ -58,7 +61,7 @@ export function SearchPanel({ isOpen, onClose }: SearchPanelProps) {
       setError('Failed to perform search')
       setSearchResponse(null)
     } finally {
-      setIsLoading(false)
+      setIsSearching(false)
     }
   }
 
@@ -76,6 +79,35 @@ export function SearchPanel({ isOpen, onClose }: SearchPanelProps) {
             </Button>
           </div>
           
+          <Button 
+            onClick={async () => {
+              setIsUpdating(true)
+              setError(null)
+              setSuccess(null)
+              try {
+                const response = await fetch('/api/upsert-embeddings', {
+                  method: 'POST',
+                });
+                
+                if (!response.ok) {
+                  throw new Error('Failed to upsert embeddings')
+                }
+                
+                const data = await response.json()
+                setSuccess(`✅ Successfully upserted ${data.count} vectors`)
+              } catch (err) {
+                console.error('Error upserting embeddings:', err)
+                setError('❌ Failed to upsert embeddings')
+              } finally {
+                setIsUpdating(false)
+              }
+            }}
+            disabled={isUpdating}
+            className="w-full mb-4"
+          >
+            {isUpdating ? 'Updating embeddings...' : 'Update Search Index'}
+          </Button>
+          
           <div className="flex gap-2">
             <Input
               value={query}
@@ -83,8 +115,8 @@ export function SearchPanel({ isOpen, onClose }: SearchPanelProps) {
               placeholder="Search messages..."
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
-            <Button onClick={handleSearch} disabled={isLoading}>
-              {isLoading ? 'Searching...' : 'Search'}
+            <Button onClick={handleSearch} disabled={isSearching}>
+              {isSearching ? 'Searching...' : 'Search'}
             </Button>
           </div>
         </div>
@@ -92,6 +124,9 @@ export function SearchPanel({ isOpen, onClose }: SearchPanelProps) {
         <div className="flex-1 overflow-y-auto p-4">
           {error && (
             <div className="text-red-500 mb-4 text-sm">{error}</div>
+          )}
+          {success && (
+            <div className="text-green-600 mb-4 text-sm">{success}</div>
           )}
 
           {searchResponse && (

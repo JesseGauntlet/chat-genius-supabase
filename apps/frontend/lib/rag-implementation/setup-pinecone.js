@@ -100,6 +100,8 @@ async function upsertEmbeddings() {
         
         console.log('Sample query result:', testQuery);
 
+        return vectors.length;  // Return the number of vectors upserted
+
     } catch (error) {
         console.error('❌ Error upserting to Pinecone:', error);
         throw error;
