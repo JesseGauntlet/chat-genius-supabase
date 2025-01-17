@@ -10,6 +10,7 @@ import { useSupabase } from '@/components/providers/supabase-provider'
 import type { Database } from '@/lib/database.types'
 import { FileUpload } from "@/components/file-upload"
 import { ThreadPanel } from '@/components/thread-panel'
+import { processChatbotCommand, handleChatbotMessage } from '@/lib/chatbot'
 
 type Channel = Database['public']['Tables']['channels']['Row']
 
@@ -40,6 +41,9 @@ interface DatabaseMessage {
   id: string;
   message: {
     text: string;
+    metadata?: {
+      imitating_user?: string
+    }
     attachments?: Array<{
       url: string;
       name: string;
@@ -284,6 +288,8 @@ function ChatPageContent() {
     if (!activeChat.id || !user) return
 
     try {
+      
+
       const { error } = await supabase
         .from('chat')
         .insert({
@@ -292,11 +298,17 @@ function ChatPageContent() {
           channel_id: activeChat.id,
         })
 
+      // Check for chatbot command
+      const command = processChatbotCommand(content)
+      if (command) {
+        await handleChatbotMessage(supabase, activeChat.id, command.targetUsername, command.query)
+      }
       if (error) throw error
     } catch (error) {
       console.error('Error sending message:', error)
     }
   }
+
   useEffect(() => {
     if (activeChat.id && activeChat.type === 'channel') {
       fetchMessages(activeChat.id)
@@ -467,12 +479,12 @@ function ChatPageContent() {
             <div className="p-4 border-t">
               <div className="max-w-[1200px] mx-auto">
                 <div className="flex items-center gap-2">
-                  <FileUpload 
-                    channelId={activeChannel?.id || ''}
-                    onUploadComplete={handleFileUpload} 
-                  />
                   <div className="flex-1">
-                    <MessageInput onSendMessage={handleSendMessage} />
+                    <MessageInput 
+                      onSendMessage={handleSendMessage} 
+                      channelId={activeChannel?.id || ''}
+                      onFileUpload={handleFileUpload}
+                    />
                   </div>
                 </div>
               </div>

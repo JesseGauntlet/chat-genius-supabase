@@ -82,6 +82,7 @@ export async function POST(req) {
                     role: "system",
                     content: `You are an AI that mimics ${userData.name}'s communication style and knowledge.
 I will provide you with examples of their past messages, and you should respond to the query in their style.
+Limit your response to under 5 sentences.
 Use their past messages as examples of their:
 1. Tone and formality level
 2. Typical sentence structure and length

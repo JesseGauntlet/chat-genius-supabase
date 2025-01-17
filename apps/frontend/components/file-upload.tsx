@@ -61,16 +61,17 @@ export function FileUpload({ channelId, onUploadComplete }: FileUploadProps) {
     <Button
       variant="ghost"
       size="icon"
-      className="relative h-10 w-10 flex-shrink-0"
+      className="h-8 w-8 flex-shrink-0 relative"
       disabled={isUploading}
     >
       <input
         type="file"
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
         onChange={handleFileUpload}
         accept="image/*,.pdf,.doc,.docx,.txt"
       />
-      <FileIcon className="h-5 w-5" />
+      <FileIcon className="h-5 w-5 text-muted-foreground pointer-events-none" />
+      <span className="sr-only">Attach file</span>
     </Button>
   )
 } 

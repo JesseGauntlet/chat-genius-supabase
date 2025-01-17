@@ -23,15 +23,18 @@ interface MessageProps {
   content: string
   isPinned?: boolean
   reactions: Array<{ emoji: string; count: number }>
-  onAddReaction: (messageId: string, emoji: string) => void
   message: {
     text: string
+    metadata?: {
+      imitating_user?: string
+    }
     attachments?: Array<{
       url: string
       name: string
     }>
     total_replies: number
   }
+  onAddReaction: (messageId: string, emoji: string) => void
   onThreadOpen?: (message: any) => void
   showActions?: boolean
   showReplyCount?: boolean
@@ -86,6 +89,10 @@ export function Message({
     }
   }
 
+  const displayName = username === 'Chatbot' && message.metadata?.imitating_user
+    ? `Chatbot | ${message.metadata.imitating_user}`
+    : username
+
   return (
     <div
       className={cn(
@@ -103,13 +110,13 @@ export function Message({
 
       <div className="flex-1 space-y-1 overflow-hidden">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-sm">{username || 'Unknown User'}</span>
+          <span className="font-semibold text-sm">{displayName}</span>
           <span className="text-xs text-muted-foreground">{timestamp}</span>
           {message.total_replies > 0 && showReplyCount && (
             <span className="text-xs text-muted-foreground hover:text-foreground cursor-pointer" onClick={() => onThreadOpen?.({
               id,
               avatar,
-              username,
+              username: displayName,
               timestamp,
               content,
               message
@@ -199,7 +206,7 @@ export function Message({
               onClick={() => onThreadOpen?.({
                 id,
                 avatar,
-                username,
+                username: displayName,
                 timestamp,
                 content,
                 message
